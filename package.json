@@ -1,0 +1,36 @@
+{
+  "name": "monitoring-demo",
+  "version": "1.0.0",
+  "description": "前端监控系统",
+  "private": true,
+  "workspaces": [
+    "packages/sdk",
+    "packages/server",
+    "packages/dashboard"
+  ],
+  "scripts": {
+    "build:sdk": "npm run build --workspace=packages/sdk",
+    "start:server": "npm run start --workspace=packages/server",
+    "start:dashboard": "npm run start --workspace=packages/dashboard",
+    "build:dashboard": "npm run build --workspace=packages/dashboard",
+    "test:sdk": "npm test --workspace=packages/sdk",
+    "test:server": "npm test --workspace=packages/server",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
