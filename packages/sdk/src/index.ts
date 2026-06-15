@@ -3,7 +3,7 @@
  */
 
 /** 监控 SDK 核心类 */
-export { MonitoringSDK } from './core/SDK';
+export { MonitoringSDK, init, getInstance } from './core/SDK';
 
 /** SDK 相关的类型定义 */
 export type { SDKConfig, EventData, PerformanceData, ErrorData, ApiRequestData, UserBehaviorData } from './types';
