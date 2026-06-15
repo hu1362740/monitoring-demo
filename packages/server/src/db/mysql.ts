@@ -30,7 +30,9 @@ export const pool = mysql.createPool({
 export async function query<T = unknown>(sql: string, params?: unknown[]): Promise<T[]> {
   const connection = await pool.getConnection();
   try {
-    const [rows] = await connection.execute(sql, params as mysql.ExecuteValues[]);
+    // mysql2 的 execute 方法要求参数符合 ExecuteValues 接口（需要字符串索引签名）
+    // 使用 any 类型断言绕过严格的类型检查
+    const [rows] = await connection.execute(sql, params as any);
     return rows as T[];
   } finally {
     // 无论查询成功或失败，都必须释放连接回连接池，避免连接泄漏
@@ -51,7 +53,9 @@ export async function query<T = unknown>(sql: string, params?: unknown[]): Promi
 export async function execute(sql: string, params?: unknown[]): Promise<mysql.ResultSetHeader> {
   const connection = await pool.getConnection();
   try {
-    const [result] = await connection.execute(sql, params as mysql.ExecuteValues[]);
+    // mysql2 的 execute 方法要求参数符合 ExecuteValues 接口（需要字符串索引签名）
+    // 使用 any 类型断言绕过严格的类型检查
+    const [result] = await connection.execute(sql, params as any);
     return result as mysql.ResultSetHeader;
   } finally {
     // 确保连接释放，防止连接池耗尽

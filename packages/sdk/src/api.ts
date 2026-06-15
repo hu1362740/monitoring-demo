@@ -41,7 +41,7 @@ export function captureException(error: Error, context?: Record<string, unknown>
 export function capturePerformance(data: PerformanceData): void {
   const instance = getInstance();
   if (instance) {
-    instance.track('performance', data);
+    instance.track('performance', data as unknown as Record<string, unknown>);
   }
 }
 
@@ -63,7 +63,7 @@ export function capturePerformance(data: PerformanceData): void {
 export function captureApiRequest(data: ApiRequestData): void {
   const instance = getInstance();
   if (instance) {
-    instance.track('api_request', data);
+    instance.track('api_request', data as unknown as Record<string, unknown>);
   }
 }
 
@@ -83,7 +83,7 @@ export function captureApiRequest(data: ApiRequestData): void {
 export function captureUserBehavior(data: UserBehaviorData): void {
   const instance = getInstance();
   if (instance) {
-    instance.track('user_behavior', data);
+    instance.track('user_behavior', data as unknown as Record<string, unknown>);
   }
 }
 

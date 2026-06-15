@@ -56,7 +56,7 @@ export class ApiRequestCapturer {
     const self = this;
     window.fetch = async function (input, init) {
       // 解析请求 URL 和方法
-      const url = typeof input === 'string' ? input : input.url;
+      const url = typeof input === 'string' ? input : input.toString();
       const method = init?.method || 'GET';
       const startTime = Date.now();
 
@@ -127,7 +127,7 @@ export class ApiRequestCapturer {
 
         // 调用原始处理器
         if (originalOnLoad) {
-          originalOnLoad.call(this);
+          originalOnLoad.call(this, arguments[0]);
         }
       };
 
@@ -148,12 +148,12 @@ export class ApiRequestCapturer {
 
         // 调用原始处理器
         if (originalOnError) {
-          originalOnError.call(this);
+          originalOnError.call(this, arguments[0]);
         }
       };
 
       // 调用原始的 open 方法
-      self.originalXHR.call(this, method, url);
+      self.originalXHR.call(this, method, url, true);
     };
   }
 

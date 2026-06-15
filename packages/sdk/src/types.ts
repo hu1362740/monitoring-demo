@@ -104,6 +104,8 @@ export interface PerformanceData {
   largestContentfulPaint?: number;
   /** 可交互时间（可选） */
   timeToInteractive?: number;
+  /** 索引签名，允许扩展属性，兼容 Record<string, unknown> */
+  [key: string]: unknown;
 }
 
 /**
@@ -126,6 +128,8 @@ export interface ErrorData {
   url?: string;
   /** 浏览器 UserAgent（可选） */
   userAgent?: string;
+  /** 索引签名，允许扩展属性，兼容 Record<string, unknown> */
+  [key: string]: unknown;
 }
 
 /**
@@ -150,6 +154,8 @@ export interface ApiRequestData {
   headers?: Record<string, string>;
   /** 请求时间戳 */
   timestamp: number;
+  /** 索引签名，允许扩展属性，兼容 Record<string, unknown> */
+  [key: string]: unknown;
 }
 
 /**
@@ -166,6 +172,8 @@ export interface UserBehaviorData {
   value?: unknown;
   /** 行为发生的时间戳 */
   timestamp: number;
+  /** 索引签名，允许扩展属性，兼容 Record<string, unknown> */
+  [key: string]: unknown;
 }
 
 /**
