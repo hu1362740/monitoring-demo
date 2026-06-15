@@ -41,20 +41,34 @@ export class MonitoringSDK {
   constructor(config: SDKConfig) {
     // 合并用户配置与默认值，确保所有配置项都有值
     this.config = {
+      // 项目唯一标识，用于认证和区分不同项目的数据（必填）
       apiKey: config.apiKey,
+      // 事件上报接口地址，默认为示例域名
       endpoint: config.endpoint || 'https://api.monitoring.example.com/v1/events',
+      // SDK 总开关，设为 false 时所有数据采集和上报均停止
       enabled: config.enabled !== undefined ? config.enabled : true,
+      // 调试模式，开启后在浏览器控制台输出所有操作的详细日志
       debug: config.debug !== undefined ? config.debug : false,
+      // 采样率（0~1），控制事件上报比例，1.0 表示全量上报
       sampleRate: config.sampleRate !== undefined ? config.sampleRate : 1.0,
+      // 批量上报阈值，队列中事件数达到此值时立即发送
       batchSize: config.batchSize || 20,
+      // 批量上报时间间隔（毫秒），未达到阈值时也会在此时间后发送
       batchInterval: config.batchInterval || 5000,
+      // 上报失败最大重试次数，采用指数退避策略
       maxRetries: config.maxRetries || 3,
+      // 是否开启错误自动捕获（window.onerror、unhandledrejection）
       captureErrors: config.captureErrors !== undefined ? config.captureErrors : true,
+      // 是否开启性能数据自动采集（Navigation Timing、Web Vitals）
       capturePerformance: config.capturePerformance !== undefined ? config.capturePerformance : true,
+      // 是否开启 API 请求自动监控（拦截 XHR/Fetch）
       captureApiRequests: config.captureApiRequests !== undefined ? config.captureApiRequests : true,
+      // 是否开启用户行为自动追踪（点击、页面浏览、表单提交）
       captureUserBehavior: config.captureUserBehavior !== undefined ? config.captureUserBehavior : false,
+      // 需要忽略的 URL 列表，匹配这些 URL 的 API 请求不会被上报
       ignoreUrls: config.ignoreUrls || [],
-      beforeSend: config.beforeSend
+      // 数据发送前的钩子函数，可修改事件数据或返回 null 取消发送
+      beforeSend: config.beforeSend || ((data: EventData) => data)
     };
 
     // 初始化事件发送器
