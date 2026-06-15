@@ -2,34 +2,57 @@ import { Request, Response } from 'express';
 import { query, execute } from '../db/mysql';
 import { getCache, setCache } from '../db/redis';
 
+/**
+ * @description 创建一条性能指标记录，用于接收客户端上报的性能数据
+ * @param {Request} req - Express 请求对象，body 中包含 projectId、metricType、value、data
+ * @param {Response} res - Express 响应对象
+ * @returns {Promise<void>} 返回创建成功状态
+ * @example
+ * // POST /api/v1/metrics
+ * // Body: { "projectId": "1", "metricType": "fcp", "value": 1200, "data": {} }
+ */
 export async function createMetric(req: Request, res: Response): Promise<void> {
   const { projectId, metricType, value, data } = req.body;
 
+  // 参数校验：projectId、metricType、value 为必填项
   if (!projectId || !metricType || value === undefined) {
     res.status(400).json({ error: 'Missing required fields' });
     return;
   }
 
+  // 将当前时间转换为 MySQL DATETIME 格式（YYYY-MM-DD HH:mm:ss）
   const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
   await execute(
     'INSERT INTO performance_metrics (project_id, metric_type, value, timestamp, data) VALUES (?, ?, ?, ?, ?)',
+    // data 字段为可选的附加信息，为空时存储 null
     [projectId, metricType, value, timestamp, data ? JSON.stringify(data) : null]
   );
 
+  // 更新项目指标上报时间戳缓存，用于监控面板实时状态展示，60 秒过期
   await setCache(`project:${projectId}:metrics:${metricType}`, Date.now(), 60);
 
   res.status(201).json({ success: true });
 }
 
+/**
+ * @description 查询性能指标列表，支持按指标类型和时间范围过滤，结果缓存 5 分钟
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、metricType、startDate、endDate
+ * @param {Response} res - Express 响应对象
+ * @returns {Promise<void>} 返回符合条件的指标数据列表
+ * @example
+ * // GET /api/v1/metrics?projectId=1&metricType=fcp&startDate=2024-01-01&endDate=2024-01-31
+ */
 export async function getMetrics(req: Request, res: Response): Promise<void> {
   const { projectId, metricType, startDate, endDate } = req.query;
 
+  // projectId 为必填参数
   if (!projectId) {
     res.status(400).json({ error: 'Project ID is required' });
     return;
   }
 
+  // 缓存键包含所有过滤维度，防止不同查询条件共享缓存
   const cacheKey = `metrics:${projectId}:${metricType}:${startDate}:${endDate}`;
   const cached = await getCache(cacheKey);
 
@@ -38,6 +61,7 @@ export async function getMetrics(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // 动态拼接 SQL，所有过滤条件均为可选
   let sql = 'SELECT * FROM performance_metrics WHERE project_id = ?';
   const params: unknown[] = [projectId];
 
@@ -56,6 +80,7 @@ export async function getMetrics(req: Request, res: Response): Promise<void> {
     params.push(endDate);
   }
 
+  // 按时间倒序排列，最新数据优先展示
   sql += ' ORDER BY timestamp DESC';
 
   const metrics = await query(sql, params);
@@ -64,6 +89,14 @@ export async function getMetrics(req: Request, res: Response): Promise<void> {
   res.json(metrics);
 }
 
+/**
+ * @description 获取性能指标汇总统计，按指标类型分组计算平均值、最小值、最大值和样本数
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate
+ * @param {Response} res - Express 响应对象
+ * @returns {Promise<void>} 返回按指标类型分组的汇总统计数据
+ * @example
+ * // GET /api/v1/metrics/summary?projectId=1&startDate=2024-01-01&endDate=2024-01-31
+ */
 export async function getPerformanceSummary(req: Request, res: Response): Promise<void> {
   const { projectId, startDate, endDate } = req.query;
 
@@ -80,6 +113,7 @@ export async function getPerformanceSummary(req: Request, res: Response): Promis
     return;
   }
 
+  // 按指标类型分组聚合，计算均值、极值和样本量，用于前端图表展示
   const sql = `
     SELECT 
       metric_type,
