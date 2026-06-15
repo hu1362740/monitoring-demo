@@ -1,102 +1,54 @@
 import { useState } from 'react';
-import { BarChart3, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Card, Form, Input, Button, Typography, message } from 'antd';
+import { UserOutlined, LockOutlined, BarChartOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 
+const { Title, Text } = Typography;
+
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handleSubmit = async (values: { email: string; password: string }) => {
     setLoading(true);
-
     try {
-      await login(email, password);
-    } catch (err) {
-      setError('邮箱或密码错误');
+      await login(values.email, values.password);
+    } catch {
+      message.error('邮箱或密码错误');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4 border border-slate-100">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl mb-4">
-            <BarChart3 className="w-8 h-8 text-white" />
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f0f2f5 0%, #e6f7ff 50%, #f0f2f5 100%)' }}>
+      <Card style={{ width: 420, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, background: '#1890ff', borderRadius: 12, marginBottom: 16 }}>
+            <BarChartOutlined style={{ fontSize: 32, color: '#fff' }} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">监控系统</h1>
-          <p className="text-gray-500 mt-2">欢迎登录管理后台</p>
+          <Title level={3} style={{ marginBottom: 4 }}>监控系统</Title>
+          <Text type="secondary">欢迎登录管理后台</Text>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                placeholder="请输入邮箱"
-                required
-              />
-            </div>
-          </div>
+        <Form onFinish={handleSubmit} size="large">
+          <Form.Item name="email" rules={[{ required: true, message: '请输入邮箱' }, { type: 'email', message: '请输入有效的邮箱' }]}>
+            <Input prefix={<UserOutlined />} placeholder="请输入邮箱" />
+          </Form.Item>
+          <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="请输入密码" iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)} />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block loading={loading}>登录</Button>
+          </Form.Item>
+        </Form>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">密码</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                placeholder="请输入密码"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? '登录中...' : '登录'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
-            测试账号: <span className="font-medium">admin@example.com</span>
-          </p>
-          <p className="text-sm text-gray-500">
-            测试密码: <span className="font-medium">password</span>
-          </p>
+        <div style={{ textAlign: 'center' }}>
+          <Text type="secondary">测试账号: <Text strong>admin@example.com</Text></Text>
+          <br />
+          <Text type="secondary">测试密码: <Text strong>password</Text></Text>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

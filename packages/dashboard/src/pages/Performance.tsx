@@ -1,48 +1,38 @@
 import { useEffect, useState } from 'react';
-import { Activity, Clock, Zap, TrendingUp, TrendingDown } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Card, Row, Col, Statistic, Progress } from 'antd';
+import {
+  ClockCircleOutlined,
+  ArrowUpOutlined,
+  ThunderboltOutlined,
+  DashboardOutlined,
+  ArrowDownOutlined,
+} from '@ant-design/icons';
+import ReactEChartsCore from 'echarts-for-react/lib/core';
+import * as echarts from 'echarts/core';
+import { LineChart, BarChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import Layout from '../components/Layout';
-import StatCard from '../components/StatCard';
 import axios from 'axios';
 
-interface MetricData {
-  name: string;
-  value: number;
-}
+echarts.use([LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
-interface TimeData {
-  time: string;
-  fcp: number;
-  lcp: number;
-  tti: number;
-}
+interface MetricData { name: string; value: number; }
+interface TimeData { time: string; fcp: number; lcp: number; tti: number; }
 
 export default function Performance() {
   const [metrics, setMetrics] = useState<MetricData[]>([]);
   const [timeTrend, setTimeTrend] = useState<TimeData[]>([]);
-  const [avgMetrics, setAvgMetrics] = useState({
-    fcp: 0,
-    lcp: 0,
-    tti: 0,
-    cls: 0
-  });
+  const [avgMetrics, setAvgMetrics] = useState({ fcp: 0, lcp: 0, tti: 0, cls: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const today = new Date().toISOString().split('T')[0];
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        await axios.get('/api/v1/metrics/summary', { params: { projectId: 'project-1', startDate: sevenDaysAgo, endDate: today } });
 
-        await axios.get('/api/v1/metrics/summary', { 
-          params: { projectId: 'project-1', startDate: sevenDaysAgo, endDate: today } 
-        });
-
-        setAvgMetrics({
-          fcp: 1850,
-          lcp: 2450,
-          tti: 3200,
-          cls: 0.15
-        });
+        setAvgMetrics({ fcp: 1850, lcp: 2450, tti: 3200, cls: 0.15 });
 
         setMetrics([
           { name: '首字节时间', value: 850 },
@@ -50,7 +40,7 @@ export default function Performance() {
           { name: 'TCP连接', value: 280 },
           { name: '请求响应', value: 450 },
           { name: 'DOM渲染', value: 1200 },
-          { name: '资源加载', value: 800 }
+          { name: '资源加载', value: 800 },
         ]);
 
         setTimeTrend([
@@ -60,131 +50,106 @@ export default function Performance() {
           { time: '12:00', fcp: 2400, lcp: 3200, tti: 4000 },
           { time: '16:00', fcp: 1900, lcp: 2500, tti: 3200 },
           { time: '20:00', fcp: 1700, lcp: 2300, tti: 2900 },
-          { time: '23:59', fcp: 1500, lcp: 2000, tti: 2600 }
+          { time: '23:59', fcp: 1500, lcp: 2000, tti: 2600 },
         ]);
       } catch (error) {
         console.error('Failed to fetch performance data:', error);
       }
     };
-
     fetchData();
   }, []);
 
-  const getPerformanceColor = (value: number, type: 'fcp' | 'lcp' | 'tti') => {
-    const thresholds = {
-      fcp: { good: 1800, warning: 3000 },
-      lcp: { good: 2500, warning: 4000 },
-      tti: { good: 3800, warning: 5500 }
-    };
-    if (value < thresholds[type].good) return 'green';
-    if (value < thresholds[type].warning) return 'yellow';
-    return 'red';
+  const getPerfStatus = (value: number, type: 'fcp' | 'lcp' | 'tti') => {
+    const thresholds = { fcp: { good: 1800, warning: 3000 }, lcp: { good: 2500, warning: 4000 }, tti: { good: 3800, warning: 5500 } };
+    if (value < thresholds[type].good) return '#52c41a';
+    if (value < thresholds[type].warning) return '#faad14';
+    return '#ff4d4f';
   };
+
+  const lineOption = {
+    tooltip: { trigger: 'axis', valueFormatter: (v: number) => (v / 1000).toFixed(2) + 's' },
+    legend: { data: ['FCP', 'LCP', 'TTI'] },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: timeTrend.map((d) => d.time) },
+    yAxis: { type: 'value', axisLabel: { formatter: (v: number) => (v / 1000) + 's' } },
+    series: [
+      { name: 'FCP', type: 'line', smooth: true, data: timeTrend.map((d) => d.fcp), itemStyle: { color: '#1890ff' } },
+      { name: 'LCP', type: 'line', smooth: true, data: timeTrend.map((d) => d.lcp), itemStyle: { color: '#52c41a' } },
+      { name: 'TTI', type: 'line', smooth: true, data: timeTrend.map((d) => d.tti), itemStyle: { color: '#faad14' } },
+    ],
+  };
+
+  const barOption = {
+    tooltip: { trigger: 'axis', valueFormatter: (v: number) => v + 'ms' },
+    grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+    xAxis: { type: 'category', data: metrics.map((d) => d.name), axisLabel: { rotate: 30 } },
+    yAxis: { type: 'value', axisLabel: { formatter: '{value}ms' } },
+    series: [{ type: 'bar', data: metrics.map((d) => d.value), itemStyle: { color: '#1890ff', borderRadius: [4, 4, 0, 0] } }],
+  };
+
+  const scores = [
+    { label: '性能', score: 85 },
+    { label: '可访问性', score: 92 },
+    { label: '最佳实践', score: 95 },
+    { label: 'SEO', score: 88 },
+  ];
 
   return (
     <Layout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">性能分析</h1>
-          <p className="text-slate-500 mt-2 text-sm">分析和优化前端性能指标</p>
-        </div>
+      <div className="page-header">
+        <h1>性能分析</h1>
+        <p>分析和优化前端性能指标</p>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="首次内容绘制(FCP)"
-            value={`${(avgMetrics.fcp / 1000).toFixed(1)}s`}
-            icon={<Clock className="w-6 h-6" />}
-            color={getPerformanceColor(avgMetrics.fcp, 'fcp') as 'blue' | 'green' | 'red'}
-            change={-5.2}
-            changeLabel="较昨日"
-          />
-          <StatCard
-            title="最大内容绘制(LCP)"
-            value={`${(avgMetrics.lcp / 1000).toFixed(1)}s`}
-            icon={<TrendingUp className="w-6 h-6" />}
-            color={getPerformanceColor(avgMetrics.lcp, 'lcp') as 'blue' | 'green' | 'red'}
-            change={3.8}
-            changeLabel="较昨日"
-          />
-          <StatCard
-            title="可交互时间(TTI)"
-            value={`${(avgMetrics.tti / 1000).toFixed(1)}s`}
-            icon={<Zap className="w-6 h-6" />}
-            color={getPerformanceColor(avgMetrics.tti, 'tti') as 'blue' | 'green' | 'red'}
-            change={-8.1}
-            changeLabel="较昨日"
-          />
-          <StatCard
-            title="累积布局偏移(CLS)"
-            value={avgMetrics.cls.toFixed(2)}
-            icon={<Activity className="w-6 h-6" />}
-            color={avgMetrics.cls < 0.1 ? 'green' : avgMetrics.cls < 0.25 ? 'yellow' : 'red'}
-            change={-12.5}
-            changeLabel="较昨日"
-          />
-        </div>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic title="首次内容绘制(FCP)" value={(avgMetrics.fcp / 1000).toFixed(1)} suffix="s" prefix={<ClockCircleOutlined />} valueStyle={{ color: getPerfStatus(avgMetrics.fcp, 'fcp') }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic title="最大内容绘制(LCP)" value={(avgMetrics.lcp / 1000).toFixed(1)} suffix="s" prefix={<ArrowUpOutlined />} valueStyle={{ color: getPerfStatus(avgMetrics.lcp, 'lcp') }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic title="可交互时间(TTI)" value={(avgMetrics.tti / 1000).toFixed(1)} suffix="s" prefix={<ThunderboltOutlined />} valueStyle={{ color: getPerfStatus(avgMetrics.tti, 'tti') }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic title="累积布局偏移(CLS)" value={avgMetrics.cls} precision={2} prefix={<DashboardOutlined />} valueStyle={{ color: avgMetrics.cls < 0.1 ? '#52c41a' : avgMetrics.cls < 0.25 ? '#faad14' : '#ff4d4f' }} />
+          </Card>
+        </Col>
+      </Row>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="text-lg font-semibold text-slate-800 mb-6">核心指标趋势</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={timeTrend}>
-                <XAxis dataKey="time" />
-                <YAxis tickFormatter={(tick) => `${tick / 1000}s`} />
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip formatter={(value) => [`${(value as number / 1000).toFixed(2)}s`]} />
-                <Line type="monotone" dataKey="fcp" name="FCP" stroke="#3B82F6" strokeWidth={2} />
-                <Line type="monotone" dataKey="lcp" name="LCP" stroke="#10B981" strokeWidth={2} />
-                <Line type="monotone" dataKey="tti" name="TTI" stroke="#F59E0B" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      <Card title="核心指标趋势" style={{ marginTop: 16 }}>
+        <ReactEChartsCore echarts={echarts} option={lineOption} style={{ height: 300 }} />
+      </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-800 mb-6">时间分解</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics}>
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                  <YAxis />
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <Tooltip formatter={(value) => [`${value}ms`]} />
-                  <Bar dataKey="value" fill="#3B82F6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-800 mb-6">性能评分</h3>
-            <div className="space-y-4">
-              {[
-                { label: '性能', score: 85, color: 'bg-green-500' },
-                { label: '可访问性', score: 92, color: 'bg-green-500' },
-                { label: '最佳实践', score: 95, color: 'bg-green-500' },
-                { label: 'SEO', score: 88, color: 'bg-green-500' }
-              ].map((item) => (
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24} lg={12}>
+          <Card title="时间分解">
+            <ReactEChartsCore echarts={echarts} option={barOption} style={{ height: 280 }} />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="性能评分">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {scores.map((item) => (
                 <div key={item.label}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">{item.label}</span>
-                    <span className={`text-sm font-bold ${item.score >= 90 ? 'text-green-600' : item.score >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {item.score}
-                    </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span>{item.label}</span>
+                    <span style={{ fontWeight: 600, color: item.score >= 90 ? '#52c41a' : item.score >= 70 ? '#faad14' : '#ff4d4f' }}>{item.score}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className={`h-3 rounded-full transition-all duration-500 ${item.color}`}
-                      style={{ width: `${item.score}%` }}
-                    />
-                  </div>
+                  <Progress percent={item.score} showInfo={false} strokeColor={item.score >= 90 ? '#52c41a' : item.score >= 70 ? '#faad14' : '#ff4d4f'} />
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </div>
+          </Card>
+        </Col>
+      </Row>
     </Layout>
   );
 }
