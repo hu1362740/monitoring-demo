@@ -1,9 +1,8 @@
-import { createClient } from 'redis';
+import { createClient, RedisClientType } from 'redis';
 import { config } from '../config';
 
-export const redisClient = createClient({
-  host: config.redis.host,
-  port: config.redis.port
+export const redisClient: RedisClientType = createClient({
+  url: `redis://${config.redis.host}:${config.redis.port}`
 });
 
 redisClient.on('error', (err) => {

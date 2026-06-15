@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS `alert_notifications` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `users` (`username`, `email`, `password_hash`, `role`) VALUES
-('admin', 'admin@example.com', '$2b$12$EixZaYbB.rK4fl8x2q7Meu6Q6D2V5fF5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q', 'admin');
+('admin', 'admin@example.com', '$2b$12$NcuedxmMTREssWtmmfC2juiDgy.dWzb/LNSxxwSJAn6T.KQh5tmnW', 'admin');
 
 INSERT INTO `projects` (`id`, `name`, `api_key`) VALUES
 ('project-1', 'Demo Project', 'demo-api-key-12345');
