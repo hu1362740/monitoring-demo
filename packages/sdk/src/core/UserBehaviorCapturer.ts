@@ -60,7 +60,7 @@ export class UserBehaviorCapturer {
 
     document.addEventListener('click', handler);
     // 记录监听器以便销毁时移除
-    this.eventListeners.push({ target: document, type: 'click', handler });
+    this.eventListeners.push({ target: document, type: 'click', handler: handler as (event: Event) => void });
   }
 
   /**

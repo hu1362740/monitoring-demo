@@ -102,7 +102,7 @@ export class ErrorCapturer {
    * @description 销毁采集器，恢复原始的 window 错误处理器
    */
   destroy(): void {
-    window.onerror = this.originalOnError;
+    window.onerror = this.originalOnError as OnErrorEventHandler;
     window.onunhandledrejection = this.originalOnUnhandledRejection;
   }
 }
