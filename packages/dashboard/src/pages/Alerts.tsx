@@ -59,15 +59,15 @@ export default function Alerts() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">告警管理</h1>
-            <p className="text-gray-500 mt-1">配置和管理告警规则</p>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">告警管理</h1>
+            <p className="text-slate-500 mt-2 text-sm">配置和管理告警规则</p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200 font-medium text-sm"
           >
             <Plus className="w-4 h-4" />
             新建告警
@@ -76,21 +76,21 @@ export default function Alerts() {
 
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索告警名称..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white shadow-sm"
             />
           </div>
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="pl-10 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
+              className="pl-11 pr-8 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white shadow-sm"
             >
               <option value="all">全部类型</option>
               <option value="error">错误</option>
@@ -100,9 +100,9 @@ export default function Alerts() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAlerts.map((alert) => (
-            <div key={alert.id} className={`bg-white rounded-xl p-5 border border-gray-100 shadow-sm ${alert.enabled ? '' : 'opacity-60'}`}>
+            <div key={alert.id} className={`bg-white rounded-2xl p-6 border border-slate-100 shadow-sm ${alert.enabled ? '' : 'opacity-60'}`}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   {alert.enabled ? (

@@ -86,66 +86,66 @@ export default function ApiRequests() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">API请求监控</h1>
-            <p className="text-gray-500 mt-1">追踪和分析API请求性能</p>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">API请求监控</h1>
+            <p className="text-slate-500 mt-2 text-sm">追踪和分析API请求性能</p>
           </div>
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200 font-medium text-sm"
           >
             <Download className="w-4 h-4" />
             导出数据
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">总请求数</p>
-                <p className="text-2xl font-bold text-gray-800 mt-1">{requests.length}</p>
+                <p className="text-sm text-slate-500">总请求数</p>
+                <p className="text-2xl font-bold text-slate-800 mt-1">{requests.length}</p>
               </div>
               <Network className="w-8 h-8 text-blue-500" />
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">平均响应时间</p>
-                <p className="text-2xl font-bold text-gray-800 mt-1">{avgDuration}ms</p>
+                <p className="text-sm text-slate-500">平均响应时间</p>
+                <p className="text-2xl font-bold text-slate-800 mt-1">{avgDuration}ms</p>
               </div>
               <Clock className="w-8 h-8 text-purple-500" />
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">成功率</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">{successRate}%</p>
+                <p className="text-sm text-slate-500">成功率</p>
+                <p className="text-2xl font-bold text-emerald-600 mt-1">{successRate}%</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-500" />
+              <CheckCircle className="w-8 h-8 text-emerald-500" />
             </div>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索URL..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white shadow-sm"
             />
           </div>
           <select
             value={filterMethod}
             onChange={(e) => setFilterMethod(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white shadow-sm"
           >
             <option value="all">全部方法</option>
             <option value="GET">GET</option>
@@ -156,7 +156,7 @@ export default function ApiRequests() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white shadow-sm"
           >
             <option value="all">全部状态</option>
             <option value="success">成功</option>
@@ -164,7 +164,7 @@ export default function ApiRequests() {
           </select>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">

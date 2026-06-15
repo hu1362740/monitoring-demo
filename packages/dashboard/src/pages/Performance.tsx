@@ -83,10 +83,10 @@ export default function Performance() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">性能分析</h1>
-          <p className="text-gray-500 mt-1">分析和优化前端性能指标</p>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">性能分析</h1>
+          <p className="text-slate-500 mt-2 text-sm">分析和优化前端性能指标</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -124,8 +124,8 @@ export default function Performance() {
           />
         </div>
 
-        <div className="bg-white rounded-xl p-6 border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">核心指标趋势</h3>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="text-lg font-semibold text-slate-800 mb-6">核心指标趋势</h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={timeTrend}>
@@ -141,9 +141,9 @@ export default function Performance() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">时间分解</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-800 mb-6">时间分解</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={metrics}>
@@ -157,8 +157,8 @@ export default function Performance() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">性能评分</h3>
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-800 mb-6">性能评分</h3>
             <div className="space-y-4">
               {[
                 { label: '性能', score: 85, color: 'bg-green-500' },

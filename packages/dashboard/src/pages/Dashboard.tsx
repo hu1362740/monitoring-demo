@@ -72,13 +72,13 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-            <p className="text-gray-500 mt-1">实时监控概览</p>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Dashboard</h1>
+            <p className="text-slate-500 mt-2 text-sm">实时监控概览</p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 text-sm text-slate-500 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100">
             <Clock className="w-4 h-4" />
             <span>{new Date().toLocaleDateString('zh-CN')}</span>
           </div>
@@ -119,9 +119,9 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">事件趋势</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-800 mb-6">事件趋势</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={eventTrend}>
@@ -135,8 +135,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">错误类型分布</h3>
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-800 mb-6">错误类型分布</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -161,8 +161,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">响应时间分布</h3>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 className="text-lg font-semibold text-slate-800 mb-6">响应时间分布</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[

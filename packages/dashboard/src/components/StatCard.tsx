@@ -10,26 +10,40 @@ interface StatCardProps {
 }
 
 const colorClasses = {
-  blue: 'bg-blue-50 text-blue-600 border-blue-200',
-  green: 'bg-green-50 text-green-600 border-green-200',
-  red: 'bg-red-50 text-red-600 border-red-200',
-  purple: 'bg-purple-50 text-purple-600 border-purple-200'
+  blue: 'bg-blue-50 text-blue-600',
+  green: 'bg-emerald-50 text-emerald-600',
+  red: 'bg-red-50 text-red-600',
+  purple: 'bg-purple-50 text-purple-600'
+};
+
+const iconBgClasses = {
+  blue: 'bg-blue-100',
+  green: 'bg-emerald-100',
+  red: 'bg-red-100',
+  purple: 'bg-purple-100'
 };
 
 export default function StatCard({ title, value, icon, color = 'blue', change, changeLabel }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-3xl font-bold text-gray-800 mt-2">{value}</p>
+    <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-100 group">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-slate-500 mb-2">{title}</p>
+          <p className="text-3xl font-bold text-slate-800 tracking-tight">{value}</p>
           {change !== undefined && (
-            <p className={`text-sm mt-2 ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {change >= 0 ? '+' : ''}{change}% {changeLabel}
-            </p>
+            <div className="flex items-center gap-1.5 mt-3">
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                change >= 0 
+                  ? 'bg-emerald-50 text-emerald-700' 
+                  : 'bg-red-50 text-red-700'
+              }`}>
+                {change >= 0 ? '↑' : '↓'} {Math.abs(change)}%
+              </span>
+              <span className="text-xs text-slate-400">{changeLabel}</span>
+            </div>
           )}
         </div>
-        <div className={`p-3 rounded-lg border ${colorClasses[color]}`}>
+        <div className={`p-3.5 rounded-xl ${iconBgClasses[color]} ${colorClasses[color]} flex-shrink-0 ml-4 group-hover:scale-110 transition-transform duration-300`}>
           {icon}
         </div>
       </div>

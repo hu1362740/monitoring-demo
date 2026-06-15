@@ -74,15 +74,15 @@ export default function ErrorMonitoring() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">错误监控</h1>
-            <p className="text-gray-500 mt-1">实时追踪和分析前端错误</p>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">错误监控</h1>
+            <p className="text-slate-500 mt-2 text-sm">实时追踪和分析前端错误</p>
           </div>
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200 font-medium text-sm"
           >
             <Download className="w-4 h-4" />
             导出数据
@@ -91,21 +91,21 @@ export default function ErrorMonitoring() {
 
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索错误消息或类型..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white shadow-sm"
             />
           </div>
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="pl-10 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
+              className="pl-11 pr-8 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white shadow-sm"
             >
               <option value="all">全部类型</option>
               <option value="TypeError">TypeError</option>
@@ -116,7 +116,7 @@ export default function ErrorMonitoring() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <TableContainer>
             <Table>
               <Thead>

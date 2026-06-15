@@ -25,8 +25,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-4 border border-slate-100">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl mb-4">
             <BarChart3 className="w-8 h-8 text-white" />

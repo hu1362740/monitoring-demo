@@ -27,23 +27,23 @@ export default function Settings() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">系统设置</h1>
-          <p className="text-gray-500 mt-1">管理系统配置和个人偏好</p>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">系统设置</h1>
+          <p className="text-slate-500 mt-2 text-sm">管理系统配置和个人偏好</p>
         </div>
 
-        <div className="flex gap-2 border-b border-gray-200">
+        <div className="flex gap-2 border-b border-slate-200">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -53,7 +53,7 @@ export default function Settings() {
           })}
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-gray-800">个人信息</h2>
