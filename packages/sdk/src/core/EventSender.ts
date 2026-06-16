@@ -102,7 +102,7 @@ export class EventSender {
     // 使用指数退避策略进行重试
     for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
       try {
-        const response = await fetch(this.config.endpoint, {
+        const response = await window.fetch(this.config.endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

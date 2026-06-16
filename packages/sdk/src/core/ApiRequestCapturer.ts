@@ -61,7 +61,7 @@ export class ApiRequestCapturer {
       const startTime = Date.now();
 
       try {
-        const response = await self.originalFetch(input, init);
+        const response = await self.originalFetch.call(window, input, init);
         const duration = Date.now() - startTime;
 
         // 不在忽略列表中的请求才上报
