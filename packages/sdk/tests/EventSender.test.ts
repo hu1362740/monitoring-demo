@@ -21,7 +21,7 @@ describe('EventSender', () => {
       captureApiRequests: true,
       captureUserBehavior: false,
       ignoreUrls: [],
-      beforeSend: undefined
+      beforeSend: (data) => data
     });
 
     const event = { type: 'test', timestamp: Date.now(), data: {} };
@@ -45,7 +45,7 @@ describe('EventSender', () => {
       captureApiRequests: true,
       captureUserBehavior: false,
       ignoreUrls: [],
-      beforeSend: undefined
+      beforeSend: (data) => data
     });
 
     sender.send({ type: 'test1', timestamp: Date.now(), data: {} });
@@ -71,7 +71,7 @@ describe('EventSender', () => {
       captureApiRequests: true,
       captureUserBehavior: false,
       ignoreUrls: [],
-      beforeSend: undefined
+      beforeSend: (data) => data
     });
 
     sender.setUser({ id: '123' });
