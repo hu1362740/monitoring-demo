@@ -73,6 +73,10 @@ export class PerformanceCapturer {
    */
   private captureNavigationTiming(): void {
     const timing = window.performance.timing;
+    // 检查 timing 是否存在
+    if (!timing) {
+      return;
+    }
     const performanceData: PerformanceData = {
       navigationStart: timing.navigationStart,
       unloadEventStart: timing.unloadEventStart,
