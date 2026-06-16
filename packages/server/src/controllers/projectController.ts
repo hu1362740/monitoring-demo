@@ -8,6 +8,10 @@ function generateApiKey(): string {
   ).join('');
 }
 
+function generateProjectId(): string {
+  return `project-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
 export async function createProject(req: AuthRequest, res: Response): Promise<void> {
   const { name } = req.body;
 
@@ -16,16 +20,17 @@ export async function createProject(req: AuthRequest, res: Response): Promise<vo
     return;
   }
 
+  const projectId = generateProjectId();
   const apiKey = generateApiKey();
   const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-  const result = await execute(
-    'INSERT INTO projects (name, api_key, created_at, updated_at) VALUES (?, ?, ?, ?)',
-    [name, apiKey, timestamp, timestamp]
+  await execute(
+    'INSERT INTO projects (id, name, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+    [projectId, name, apiKey, timestamp, timestamp]
   );
 
   res.status(201).json({
-    id: result.insertId,
+    id: projectId,
     name,
     apiKey,
     createdAt: timestamp
