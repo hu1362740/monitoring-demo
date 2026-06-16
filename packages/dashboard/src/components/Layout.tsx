@@ -13,6 +13,7 @@ import {
   MenuUnfoldOutlined,
   BarChartOutlined,
   UserOutlined,
+  FolderOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,6 +25,7 @@ interface LayoutProps {
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: <DashboardOutlined /> },
+  { path: '/projects', label: '项目管理', icon: <FolderOutlined /> },
   { path: '/errors', label: '错误监控', icon: <WarningOutlined /> },
   { path: '/performance', label: '性能分析', icon: <LineChartOutlined /> },
   { path: '/api', label: 'API请求', icon: <ApiOutlined /> },

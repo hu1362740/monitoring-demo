@@ -7,6 +7,7 @@ import Performance from './pages/Performance';
 import ApiRequests from './pages/ApiRequests';
 import Alerts from './pages/Alerts';
 import Settings from './pages/Settings';
+import Projects from './pages/Projects';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -23,6 +24,7 @@ function AppContent() {
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/errors" element={<ProtectedRoute><ErrorMonitoring /></ProtectedRoute>} />
       <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
       <Route path="/api" element={<ProtectedRoute><ApiRequests /></ProtectedRoute>} />

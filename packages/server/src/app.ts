@@ -3,6 +3,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth';
 import eventRoutes from './routes/events';
 import metricRoutes from './routes/metrics';
+import projectRoutes from './routes/projects';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', eventRoutes);
 app.use('/api/v1', metricRoutes);
+app.use('/api/v1', projectRoutes);
 
 /**
  * @description 健康检查接口，用于负载均衡器或监控系统探测服务存活状态
