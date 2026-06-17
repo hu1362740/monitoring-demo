@@ -225,14 +225,14 @@ export async function getEvents(req: Request, res: Response): Promise<void> {
  * // GET /api/v1/errors/stats?projectId=1&startDate=2024-01-01&endDate=2024-01-31
  */
 export async function getErrorStats(req: Request, res: Response): Promise<void> {
-  const { projectId, startDate, endDate } = req.query;
+  const { projectId, startDate, endDate, errorType, message } = req.query;
 
   if (!projectId) {
     res.status(400).json({ error: 'Project ID is required' });
     return;
   }
 
-  const cacheKey = `errors:stats:${projectId}:${startDate}:${endDate}`;
+  const cacheKey = `errors:stats:${projectId}:${startDate}:${endDate}:${errorType || ''}:${message || ''}`;
   const cached = await getCache(cacheKey);
 
   if (cached) {
@@ -241,17 +241,33 @@ export async function getErrorStats(req: Request, res: Response): Promise<void> 
   }
 
   // 按错误类型分组，统计每种错误的出现次数和总发生次数，按次数降序排列
-  const sql = `
-    SELECT error_type, COUNT(*) as count, SUM(count) as total_occurrences
+  let sql = `
+    SELECT error_type, message, url, COUNT(*) as count, MAX(timestamp) as last_occurrence
     FROM errors
     WHERE project_id = ?
-      AND timestamp >= ?
-      AND timestamp <= ?
-    GROUP BY error_type
-    ORDER BY count DESC
   `;
+  const params: unknown[] = [projectId];
 
-  const stats = await query(sql, [projectId, startDate, endDate]);
+  if (startDate && endDate) {
+    sql += ` AND timestamp >= ? AND timestamp <= ?`;
+    // 结束日期需要包含当天，转换为当天的 23:59:59
+    const endDateTime = `${endDate} 23:59:59`;
+    params.push(`${startDate} 00:00:00`, endDateTime);
+  }
+
+  if (errorType) {
+    sql += ` AND error_type = ?`;
+    params.push(errorType);
+  }
+
+  if (message) {
+    sql += ` AND message LIKE ?`;
+    params.push(`%${message}%`);
+  }
+
+  sql += ` GROUP BY error_type, message, url ORDER BY count DESC LIMIT 100`;
+
+  const stats = await query(sql, params);
   await setCache(cacheKey, stats, 300);
 
   res.json(stats);

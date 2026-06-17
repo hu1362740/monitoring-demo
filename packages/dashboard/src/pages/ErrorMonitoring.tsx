@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Tag, Input, Select, Button, Space, Typography, Spin } from 'antd';
-import { WarningOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Input, Select, Button, Space, Typography, Spin, DatePicker, Tooltip } from 'antd';
+import { WarningOutlined, SearchOutlined, DownloadOutlined, CalendarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 import Layout from '../components/Layout';
 import axios from 'axios';
 import { useProject } from '../context/ProjectContext';
@@ -15,23 +16,87 @@ interface ErrorItem {
   last_occurrence: string;
 }
 
+const { RangePicker } = DatePicker;
+
 export default function ErrorMonitoring() {
   const { currentProject, loading: projectLoading } = useProject();
   const [errors, setErrors] = useState<ErrorItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [loading, setLoading] = useState(false);
+  
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(() => {
+    // 默认设置为近7天
+    const endDate = dayjs();
+    const startDate = dayjs().subtract(7, 'day');
+    return [startDate, endDate];
+  });
 
-  useEffect(() => {
+  const presets = [
+    {
+      label: '近7天',
+      value: () => {
+        const end = dayjs();
+        const start = dayjs().subtract(7, 'day');
+        return [start, end] as [dayjs.Dayjs, dayjs.Dayjs];
+      },
+    },
+    {
+      label: '近30天',
+      value: () => {
+        const end = dayjs();
+        const start = dayjs().subtract(30, 'day');
+        return [start, end] as [dayjs.Dayjs, dayjs.Dayjs];
+      },
+    },
+    {
+      label: '近90天',
+      value: () => {
+        const end = dayjs();
+        const start = dayjs().subtract(90, 'day');
+        return [start, end] as [dayjs.Dayjs, dayjs.Dayjs];
+      },
+    },
+  ];
+
+  const fetchErrors = async () => {
     if (!currentProject) return;
+    
+    setLoading(true);
+    try {
+      let startDate: string;
+      let endDate: string;
 
-    const fetchErrors = async () => {
-      setLoading(true);
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const response = await axios.get('/api/v1/errors/stats', { params: { projectId: currentProject.id, startDate: sevenDaysAgo, endDate: today } });
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        startDate = dateRange[0].format('YYYY-MM-DD');
+        endDate = dateRange[1].format('YYYY-MM-DD');
+      } else {
+        endDate = dayjs().format('YYYY-MM-DD');
+        startDate = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
+      }
 
+      const params: Record<string, string> = {
+        projectId: currentProject.id,
+        startDate,
+        endDate,
+      };
+
+      // 添加搜索关键词参数
+      if (searchTerm.trim()) {
+        params.message = searchTerm.trim();
+      }
+
+      // 添加错误类型过滤参数
+      if (filterType && filterType !== 'all') {
+        params.errorType = filterType;
+      }
+
+      console.log('[ErrorMonitoring] Fetching errors with params:', params);
+      
+      const response = await axios.get('/api/v1/errors/stats', { params });
+      console.log('[ErrorMonitoring] Response:', response.data);
+      
+      if (response.data && response.data.length > 0) {
         setErrors(response.data.map((item: { error_type: string; message: string; url: string; count: number; last_occurrence: string }, index: number) => ({
           id: `error-${index}`,
           error_type: item.error_type,
@@ -40,20 +105,31 @@ export default function ErrorMonitoring() {
           count: item.count,
           last_occurrence: item.last_occurrence || new Date().toISOString(),
         })));
-      } catch {
-        setErrors([
-          { id: '1', error_type: 'TypeError', message: 'Cannot read properties of undefined', url: '/users', count: 120, last_occurrence: '2024-01-15T10:30:00Z' },
-          { id: '2', error_type: 'ReferenceError', message: 'variable is not defined', url: '/dashboard', count: 85, last_occurrence: '2024-01-15T09:15:00Z' },
-          { id: '3', error_type: 'RangeError', message: 'Maximum call stack size exceeded', url: '/api/data', count: 65, last_occurrence: '2024-01-15T08:45:00Z' },
-          { id: '4', error_type: 'SyntaxError', message: 'Unexpected token in JSON', url: '/settings', count: 45, last_occurrence: '2024-01-15T07:20:00Z' },
-          { id: '5', error_type: 'TypeError', message: 'Cannot read properties of null', url: '/products', count: 38, last_occurrence: '2024-01-15T06:55:00Z' },
-        ]);
-      } finally {
-        setLoading(false);
+      } else {
+        console.log('[ErrorMonitoring] No data returned, showing empty state');
+        setErrors([]);
       }
-    };
-    fetchErrors();
+    } catch (error) {
+      console.error('[ErrorMonitoring] Failed to fetch errors:', error);
+      setErrors([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentProject) {
+      fetchErrors();
+    }
   }, [currentProject]);
+
+  const handleDateRangeChange = (dates: [dayjs.Dayjs, dayjs.Dayjs] | null) => {
+    setDateRange(dates);
+  };
+
+  const handleSearch = () => {
+    fetchErrors();
+  };
 
   if (projectLoading || !currentProject) {
     return (
@@ -95,6 +171,7 @@ export default function ErrorMonitoring() {
     {
       title: '错误类型',
       dataIndex: 'error_type',
+      width: 140,
       render: (type: string) => (
         <Space>
           <WarningOutlined style={{ color: '#ff4d4f' }} />
@@ -102,10 +179,44 @@ export default function ErrorMonitoring() {
         </Space>
       ),
     },
-    { title: '消息', dataIndex: 'message', ellipsis: true },
-    { title: 'URL', dataIndex: 'url', render: (url: string) => <Typography.Text type="secondary">{url}</Typography.Text> },
-    { title: '发生次数', dataIndex: 'count', align: 'right', render: (count: number) => <Typography.Text strong style={{ color: '#ff4d4f' }}>{count}</Typography.Text> },
-    { title: '最后发生时间', dataIndex: 'last_occurrence', align: 'right', render: (t: string) => new Date(t).toLocaleString('zh-CN') },
+    {
+      title: '消息',
+      dataIndex: 'message',
+      width: 300,
+      render: (message: string) => (
+        <Tooltip placement="topLeft" title={message}>
+          <div
+            style={{
+              maxWidth: 280,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+            }}
+          >
+            {message}
+          </div>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'URL',
+      dataIndex: 'url',
+      width: 250,
+      render: (url: string) => (
+        <Tooltip placement="topLeft" title={url}>
+          <Typography.Text
+            type="secondary"
+            ellipsis
+            style={{ maxWidth: 230, display: 'inline-block', verticalAlign: 'middle' }}
+          >
+            {url}
+          </Typography.Text>
+        </Tooltip>
+      ),
+    },
+    { title: '发生次数', dataIndex: 'count', width: 100, align: 'right', render: (count: number) => <Typography.Text strong style={{ color: '#ff4d4f' }}>{count}</Typography.Text> },
+    { title: '最后发生时间', dataIndex: 'last_occurrence', width: 170, align: 'right', render: (t: string) => new Date(t).toLocaleString('zh-CN') },
   ];
 
   return (
@@ -135,6 +246,17 @@ export default function ErrorMonitoring() {
             <Select.Option value="RangeError">RangeError</Select.Option>
             <Select.Option value="SyntaxError">SyntaxError</Select.Option>
           </Select>
+          
+          <RangePicker
+            value={dateRange}
+            onChange={handleDateRangeChange}
+            placeholder={['开始日期', '结束日期']}
+            prefixIcon={<CalendarOutlined />}
+            style={{ width: 300 }}
+            presets={presets}
+          />
+          
+          <Button type="primary" onClick={handleSearch}>查询</Button>
         </Space>
       </Card>
 
