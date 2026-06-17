@@ -15,6 +15,111 @@ interface EventData {
 }
 
 /**
+ * @description 根据事件类型分发存储到对应的数据表
+ * @param {EventData} event - 事件数据
+ * @param {string} projectId - 项目 ID
+ * @returns {Promise<void>}
+ */
+async function processEvent(event: EventData, projectId: string): Promise<void> {
+  const timestamp = new Date(event.timestamp).toISOString().slice(0, 19).replace('T', ' ');
+  
+  // 统一写入 events 表（总表）
+  await execute(
+    'INSERT INTO events (type, project_id, timestamp, data) VALUES (?, ?, ?, ?)',
+    [event.type, projectId, timestamp, JSON.stringify(event.data)]
+  );
+
+  // 根据事件类型分发到对应表
+  switch (event.type) {
+    case 'error':
+      await handleErrorEvent(event, projectId, timestamp);
+      break;
+    case 'performance':
+      await handlePerformanceEvent(event, projectId, timestamp);
+      break;
+    case 'api_request':
+      await handleApiRequestEvent(event, projectId, timestamp);
+      break;
+    case 'click':
+    case 'pageview':
+    case 'form_submit':
+      await handleUserBehaviorEvent(event, projectId, timestamp);
+      break;
+  }
+}
+
+/**
+ * @description 处理错误事件，存储到 errors 表
+ */
+async function handleErrorEvent(event: EventData, projectId: string, timestamp: string): Promise<void> {
+  const data = event.data as Record<string, unknown>;
+  await execute(
+    'INSERT INTO errors (project_id, error_type, message, stack, url, user_agent, timestamp, count, last_occurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE count = count + 1, last_occurrence = ?, stack = IFNULL(?, stack), url = IFNULL(?, url), user_agent = IFNULL(?, user_agent)',
+    [
+      projectId,
+      data.type || 'Error',
+      data.message || '',
+      data.stack || null,
+      data.url || null,
+      data.userAgent || null,
+      timestamp,
+      1,
+      timestamp,
+      // ON DUPLICATE KEY UPDATE 参数
+      timestamp,
+      data.stack || null,
+      data.url || null,
+      data.userAgent || null
+    ]
+  );
+}
+
+/**
+ * @description 处理性能事件，存储到 performance_metrics 表
+ */
+async function handlePerformanceEvent(event: EventData, projectId: string, timestamp: string): Promise<void> {
+  const data = event.data as Record<string, unknown>;
+  await execute(
+    'INSERT INTO performance_metrics (project_id, metric_type, value, timestamp, data) VALUES (?, ?, ?, ?, ?)',
+    [
+      projectId,
+      data.metricType || 'unknown',
+      typeof data.value === 'number' ? data.value : 0,
+      timestamp,
+      JSON.stringify(data)
+    ]
+  );
+}
+
+/**
+ * @description 处理 API 请求事件，存储到 api_requests 表
+ */
+async function handleApiRequestEvent(event: EventData, projectId: string, timestamp: string): Promise<void> {
+  const data = event.data as Record<string, unknown>;
+  await execute(
+    'INSERT INTO api_requests (project_id, url, method, status_code, duration, success, timestamp, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      projectId,
+      data.url || '',
+      data.method || 'GET',
+      typeof data.statusCode === 'number' ? data.statusCode : 0,
+      typeof data.duration === 'number' ? data.duration : 0,
+      data.success ? 1 : 0,
+      timestamp,
+      JSON.stringify(data)
+    ]
+  );
+}
+
+/**
+ * @description 处理用户行为事件，存储到 events 表（已在主流程处理）
+ */
+async function handleUserBehaviorEvent(event: EventData, projectId: string, timestamp: string): Promise<void> {
+  // 用户行为事件已在主流程写入 events 表
+  // 这里可以添加额外的行为分析逻辑
+}
+
+/**
  * @description 接收并批量存储客户端上报的事件数据，通过 API Key 验证项目身份
  * @param {Request} req - Express 请求对象，body 中包含 apiKey 和 events 数组
  * @param {Response} res - Express 响应对象
@@ -44,12 +149,7 @@ export async function receiveEvents(req: Request, res: Response): Promise<void> 
 
   // 并发写入所有事件，提升批量上报的吞吐性能
   const promises = events.map((event: EventData) => {
-    // 将时间戳转换为 MySQL DATETIME 格式（YYYY-MM-DD HH:mm:ss）
-    const timestamp = new Date(event.timestamp).toISOString().slice(0, 19).replace('T', ' ');
-    return execute(
-      'INSERT INTO events (type, project_id, timestamp, data) VALUES (?, ?, ?, ?)',
-      [event.type, projectId, timestamp, JSON.stringify(event.data)]
-    );
+    return processEvent(event, projectId);
   });
 
   // 等待所有写入操作完成，任一失败将抛出异常
