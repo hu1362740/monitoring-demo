@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Tag, Input, Select, Button, Space, Typography } from 'antd';
+import { Table, Card, Tag, Input, Select, Button, Space, Typography, Spin } from 'antd';
 import { WarningOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import Layout from '../components/Layout';
 import axios from 'axios';
+import { useProject } from '../context/ProjectContext';
 
 interface ErrorItem {
   id: string;
@@ -15,26 +16,29 @@ interface ErrorItem {
 }
 
 export default function ErrorMonitoring() {
+  const { currentProject, loading: projectLoading } = useProject();
   const [errors, setErrors] = useState<ErrorItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!currentProject) return;
+
     const fetchErrors = async () => {
       setLoading(true);
       try {
         const today = new Date().toISOString().split('T')[0];
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const response = await axios.get('/api/v1/errors/stats', { params: { projectId: 'project-1', startDate: sevenDaysAgo, endDate: today } });
+        const response = await axios.get('/api/v1/errors/stats', { params: { projectId: currentProject.id, startDate: sevenDaysAgo, endDate: today } });
 
-        setErrors(response.data.map((item: { error_type: string; count: number }, index: number) => ({
+        setErrors(response.data.map((item: { error_type: string; message: string; url: string; count: number; last_occurrence: string }, index: number) => ({
           id: `error-${index}`,
           error_type: item.error_type,
-          message: `An error occurred of type ${item.error_type}`,
-          url: 'https://example.com/path',
+          message: item.message || `An error occurred of type ${item.error_type}`,
+          url: item.url || 'https://example.com/path',
           count: item.count,
-          last_occurrence: new Date().toISOString(),
+          last_occurrence: item.last_occurrence || new Date().toISOString(),
         })));
       } catch {
         setErrors([
@@ -49,7 +53,17 @@ export default function ErrorMonitoring() {
       }
     };
     fetchErrors();
-  }, []);
+  }, [currentProject]);
+
+  if (projectLoading || !currentProject) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+          <Spin size="large" />
+        </div>
+      </Layout>
+    );
+  }
 
   const filteredErrors = errors.filter((error) => {
     const matchesSearch = error.message.toLowerCase().includes(searchTerm.toLowerCase()) || error.error_type.toLowerCase().includes(searchTerm.toLowerCase());

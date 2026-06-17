@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Dropdown, Button, Avatar, Space } from 'antd';
+import { Layout, Menu, Dropdown, Button, Avatar, Space, Select } from 'antd';
 import {
   DashboardOutlined,
   WarningOutlined,
@@ -14,8 +14,10 @@ import {
   BarChartOutlined,
   UserOutlined,
   FolderOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
+import { useProject } from '../context/ProjectContext';
 
 const { Header, Sider, Content } = Layout;
 
@@ -37,6 +39,7 @@ export default function AntdLayout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const { projects, currentProject, setCurrentProject } = useProject();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = () => {
@@ -119,12 +122,30 @@ export default function AntdLayout({ children }: LayoutProps) {
           top: 0,
           zIndex: 10,
         }}>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: 16 }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ fontSize: 16 }}
+            />
+            <Select
+              value={currentProject?.id}
+              onChange={(value) => {
+                const project = projects.find(p => p.id === value);
+                if (project) {
+                  setCurrentProject(project);
+                }
+              }}
+              style={{ width: 200 }}
+              placeholder="选择项目"
+              suffixIcon={<DownOutlined />}
+              options={projects.map(project => ({
+                value: project.id,
+                label: project.name,
+              }))}
+            />
+          </div>
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
             <Space style={{ cursor: 'pointer' }}>
               <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />

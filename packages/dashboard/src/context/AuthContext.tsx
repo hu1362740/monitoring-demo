@@ -11,6 +11,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -20,21 +21,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      axios.get('/api/v1/auth/profile')
-        .then(response => {
-          setUser(response.data);
-          setIsAuthenticated(true);
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-          setIsAuthenticated(false);
-        });
+    console.log('[AuthContext] Checking token:', token ? 'exists' : 'not found');
+    
+    if (!token) {
+      console.log('[AuthContext] No token, setting loading=false');
+      setLoading(false);
+      return;
     }
+
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('[AuthContext] Calling /api/v1/auth/profile...');
+    
+    axios.get('/api/v1/auth/profile')
+      .then(response => {
+        console.log('[AuthContext] Profile success:', response.data);
+        setUser(response.data);
+        setIsAuthenticated(true);
+      })
+      .catch((error) => {
+        console.log('[AuthContext] Profile failed:', error.response?.status || error.message);
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
+        setIsAuthenticated(false);
+      })
+      .finally(() => {
+        console.log('[AuthContext] Setting loading=false');
+        setLoading(false);
+      });
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -55,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

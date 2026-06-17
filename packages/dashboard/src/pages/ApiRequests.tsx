@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Tag, Input, Select, Button, Row, Col, Statistic, Space } from 'antd';
+import { Table, Card, Tag, Input, Select, Button, Row, Col, Statistic, Space, Spin } from 'antd';
 import { ApiOutlined, ClockCircleOutlined, CheckCircleOutlined, DownloadOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import Layout from '../components/Layout';
 import axios from 'axios';
+import { useProject } from '../context/ProjectContext';
 
 interface ApiRequest {
   id: string;
@@ -16,15 +17,43 @@ interface ApiRequest {
 }
 
 export default function ApiRequests() {
+  const { currentProject, loading: projectLoading } = useProject();
   const [requests, setRequests] = useState<ApiRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMethod, setFilterMethod] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
+    if (!currentProject) return;
+
     const fetchData = async () => {
       try {
-        await axios.get('/api/v1/events', { params: { projectId: 'project-1', type: 'api_request' } });
+        const response = await axios.get('/api/v1/events', { params: { projectId: currentProject.id, type: 'api_request' } });
+        const apiRequests = response.data.events || [];
+        if (apiRequests.length > 0) {
+          setRequests(apiRequests.map((item: Record<string, unknown>, index: number) => ({
+            id: String(item.id) || `api-${index}`,
+            url: String(item.data?.url || ''),
+            method: String(item.data?.method || 'GET'),
+            statusCode: Number(item.data?.statusCode || 0),
+            duration: Number(item.data?.duration || 0),
+            success: Boolean(item.data?.success),
+            timestamp: String(item.timestamp || new Date().toISOString()),
+          })));
+        } else {
+          setRequests([
+            { id: '1', url: '/api/users', method: 'GET', statusCode: 200, duration: 125, success: true, timestamp: '2024-01-15T10:30:00Z' },
+            { id: '2', url: '/api/products', method: 'GET', statusCode: 200, duration: 234, success: true, timestamp: '2024-01-15T10:30:01Z' },
+            { id: '3', url: '/api/orders', method: 'POST', statusCode: 201, duration: 567, success: true, timestamp: '2024-01-15T10:30:02Z' },
+            { id: '4', url: '/api/users/123', method: 'GET', statusCode: 404, duration: 89, success: false, timestamp: '2024-01-15T10:30:03Z' },
+            { id: '5', url: '/api/payment', method: 'POST', statusCode: 500, duration: 1200, success: false, timestamp: '2024-01-15T10:30:04Z' },
+            { id: '6', url: '/api/categories', method: 'GET', statusCode: 200, duration: 98, success: true, timestamp: '2024-01-15T10:30:05Z' },
+            { id: '7', url: '/api/search', method: 'GET', statusCode: 200, duration: 445, success: true, timestamp: '2024-01-15T10:30:06Z' },
+            { id: '8', url: '/api/auth/login', method: 'POST', statusCode: 200, duration: 876, success: true, timestamp: '2024-01-15T10:30:07Z' },
+          ]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch API requests:', error);
         setRequests([
           { id: '1', url: '/api/users', method: 'GET', statusCode: 200, duration: 125, success: true, timestamp: '2024-01-15T10:30:00Z' },
           { id: '2', url: '/api/products', method: 'GET', statusCode: 200, duration: 234, success: true, timestamp: '2024-01-15T10:30:01Z' },
@@ -35,12 +64,20 @@ export default function ApiRequests() {
           { id: '7', url: '/api/search', method: 'GET', statusCode: 200, duration: 445, success: true, timestamp: '2024-01-15T10:30:06Z' },
           { id: '8', url: '/api/auth/login', method: 'POST', statusCode: 200, duration: 876, success: true, timestamp: '2024-01-15T10:30:07Z' },
         ]);
-      } catch (error) {
-        console.error('Failed to fetch API requests:', error);
       }
     };
     fetchData();
-  }, []);
+  }, [currentProject]);
+
+  if (projectLoading || !currentProject) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+          <Spin size="large" />
+        </div>
+      </Layout>
+    );
+  }
 
   const filteredRequests = requests.filter((req) => {
     const matchesSearch = req.url.toLowerCase().includes(searchTerm.toLowerCase());
