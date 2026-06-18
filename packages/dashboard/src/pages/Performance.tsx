@@ -70,28 +70,59 @@ export default function Performance() {
         const hourlyData: Record<string, { fcp: number; lcp: number; tti: number }> = {};
 
         trendData.forEach((item: { hour: string; metric_type: string; avg_value: number }) => {
-          const time = item.hour.split(' ')[1].slice(0, 5);
-          if (!hourlyData[time]) {
-            hourlyData[time] = { fcp: 0, lcp: 0, tti: 0 };
+          // hour 格式: "2026-06-17 09:00:00"
+          const time = item.hour.split(' ')[1].slice(0, 5); // 得到 "09:00"
+          const dateStr = item.hour.split(' ')[0]; // 得到 "2026-06-17"
+          const key = `${dateStr} ${time}`; // 得到 "2026-06-17 09:00"
+          
+          if (!hourlyData[key]) {
+            hourlyData[key] = { fcp: 0, lcp: 0, tti: 0 };
           }
-          if (item.metric_type === 'fcp') hourlyData[time].fcp = item.avg_value;
-          if (item.metric_type === 'lcp') hourlyData[time].lcp = item.avg_value;
-          if (item.metric_type === 'tti') hourlyData[time].tti = item.avg_value;
+          if (item.metric_type === 'fcp') hourlyData[key].fcp = item.avg_value;
+          if (item.metric_type === 'lcp') hourlyData[key].lcp = item.avg_value;
+          if (item.metric_type === 'tti') hourlyData[key].tti = item.avg_value;
         });
 
-        const trendArray = Object.entries(hourlyData).map(([time, values]) => ({
-          time,
-          fcp: Math.round(values.fcp),
-          lcp: Math.round(values.lcp),
-          tti: Math.round(values.tti),
-        }));
+        // 根据日期范围生成完整的 X 轴标签（只包含有数据的点）
+        const dayCount = dateRange[1].diff(dateRange[0], 'day') + 1;
+        let trendArray: { time: string; fcp: number; lcp: number; tti: number }[] = [];
 
-        // 如果没有数据，显示空状态
-        if (trendArray.length > 0) {
-          setTimeTrend(trendArray);
+        if (dayCount === 1) {
+          // 选择1天时：显示24个小时
+          for (let hour = 0; hour < 24; hour++) {
+            const dateStr = dateRange[0].format('YYYY-MM-DD');
+            const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+            const key = `${dateStr} ${timeStr}`;
+            const fcp = hourlyData[key]?.fcp || 0;
+            const lcp = hourlyData[key]?.lcp || 0;
+            const tti = hourlyData[key]?.tti || 0;
+            // 只添加有数据的点
+            if (fcp > 0 || lcp > 0 || tti > 0) {
+              trendArray.push({ time: timeStr, fcp, lcp, tti });
+            }
+          }
         } else {
-          setTimeTrend([]);
+          // 选择多天时：按天显示有数据的点
+          for (let d = 0; d < dayCount; d++) {
+            const date = dateRange[0].add(d, 'day');
+            const dateStr = date.format('YYYY-MM-DD');
+            const dateLabel = date.format('MM-DD');
+            // 查找该天所有有数据的小时
+            Object.entries(hourlyData).forEach(([key, values]) => {
+              if (key.startsWith(dateStr) && (values.fcp > 0 || values.lcp > 0 || values.tti > 0)) {
+                const timePart = key.split(' ')[1]; // 得到 "09:00"
+                trendArray.push({
+                  time: `${dateLabel} ${timePart}`,
+                  fcp: values.fcp,
+                  lcp: values.lcp,
+                  tti: values.tti,
+                });
+              }
+            });
+          }
         }
+
+        setTimeTrend(trendArray);
       } catch (error) {
         console.error('Failed to fetch performance data:', error);
         // 保持现有假数据作为降级
@@ -142,7 +173,7 @@ export default function Performance() {
     legend: { data: ['FCP', 'LCP', 'TTI'] },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: { type: 'category', data: timeTrend.map((d) => d.time) },
-    yAxis: { type: 'value', axisLabel: { formatter: (v: number) => (v / 1000) + 's' } },
+    yAxis: { type: 'value', axisLabel: { formatter: (v: number) => (v / 1000).toFixed(1) + 's' } },
     series: [
       { name: 'FCP', type: 'line', smooth: true, data: timeTrend.map((d) => d.fcp), itemStyle: { color: '#1890ff' } },
       { name: 'LCP', type: 'line', smooth: true, data: timeTrend.map((d) => d.lcp), itemStyle: { color: '#52c41a' } },
