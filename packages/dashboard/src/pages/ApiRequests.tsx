@@ -41,7 +41,16 @@ export default function ApiRequests() {
             params: { projectId: currentProject.id, startDate, endDate } 
           }),
           axios.get('/api/v1/api-requests', { 
-            params: { projectId: currentProject.id, startDate, endDate, page: pagination.current, pageSize: pagination.pageSize } 
+            params: { 
+              projectId: currentProject.id, 
+              startDate, 
+              endDate, 
+              page: pagination.current, 
+              pageSize: pagination.pageSize,
+              search: searchTerm,
+              method: filterMethod,
+              status: filterStatus
+            } 
           })
         ]);
         
@@ -74,7 +83,7 @@ export default function ApiRequests() {
       }
     };
     fetchData();
-  }, [currentProject, dateRange, pagination.current, pagination.pageSize]);
+  }, [currentProject, dateRange, pagination.current, pagination.pageSize, searchTerm, filterMethod, filterStatus]);
 
   const handleTableChange = (paginationInfo: { current: number; pageSize: number }) => {
     setPagination(paginationInfo);
@@ -94,16 +103,9 @@ export default function ApiRequests() {
     );
   }
 
-  const filteredRequests = requests.filter((req) => {
-    const matchesSearch = req.url.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMethod = filterMethod === 'all' || req.method === filterMethod;
-    const matchesStatus = filterStatus === 'all' || (filterStatus === 'success' && req.success) || (filterStatus === 'error' && !req.success);
-    return matchesSearch && matchesMethod && matchesStatus;
-  });
-
   const handleExport = () => {
     const csv = [['URL', '方法', '状态码', '响应时间(ms)', '成功', '时间']]
-      .concat(filteredRequests.map((r) => [r.url, r.method, String(r.statusCode), String(r.duration), String(r.success), r.timestamp]))
+      .concat(requests.map((r) => [r.url, r.method, String(r.statusCode), String(r.duration), String(r.success), r.timestamp]))
       .map((row) => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -191,7 +193,7 @@ export default function ApiRequests() {
         ) : (
           <Table 
             columns={columns} 
-            dataSource={filteredRequests} 
+            dataSource={requests} 
             rowKey="id" 
             pagination={{ 
               current: pagination.current,

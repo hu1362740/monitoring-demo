@@ -359,13 +359,13 @@ export async function getApiRequestStats(req: Request, res: Response): Promise<v
 }
 
 /**
- * @description 获取指定项目的 API 请求列表（支持分页）
- * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate、page、pageSize
+ * @description 获取指定项目的 API 请求列表（支持分页和搜索过滤）
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate、page、pageSize、search、method、status
  * @param {Response} res - Express 响应对象
  * @returns {Promise<void>} 返回 API 请求列表及总数
  */
 export async function getApiRequests(req: Request, res: Response): Promise<void> {
-  const { projectId, startDate, endDate, page = 1, pageSize = 10 } = req.query;
+  const { projectId, startDate, endDate, page = 1, pageSize = 10, search, method, status } = req.query;
 
   if (!projectId) {
     res.status(400).json({
@@ -379,14 +379,6 @@ export async function getApiRequests(req: Request, res: Response): Promise<void>
   let countSql = `SELECT COUNT(*) as total FROM api_requests WHERE project_id = ?`;
   const countParams: unknown[] = [projectId];
   
-  if (startDate && endDate) {
-    countSql += ` AND timestamp >= ? AND timestamp <= ?`;
-    countParams.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
-  }
-  
-  const countResult = await query(countSql, countParams);
-  const total = Number((countResult[0] as { total: string }).total) || 0;
-
   let sql = `
     SELECT id, project_id, url, method, status_code, duration, success, timestamp, created_at
     FROM api_requests
@@ -396,8 +388,36 @@ export async function getApiRequests(req: Request, res: Response): Promise<void>
 
   if (startDate && endDate) {
     sql += ` AND timestamp >= ? AND timestamp <= ?`;
-    params.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
+    countSql += ` AND timestamp >= ? AND timestamp <= ?`;
+    const endDateTime = `${endDate} 23:59:59`;
+    params.push(`${startDate} 00:00:00`, endDateTime);
+    countParams.push(`${startDate} 00:00:00`, endDateTime);
   }
+
+  if (search) {
+    sql += ` AND url LIKE ?`;
+    countSql += ` AND url LIKE ?`;
+    params.push(`%${search}%`);
+    countParams.push(`%${search}%`);
+  }
+
+  if (method && method !== 'all') {
+    sql += ` AND method = ?`;
+    countSql += ` AND method = ?`;
+    params.push(method);
+    countParams.push(method);
+  }
+
+  if (status && status !== 'all') {
+    const successValue = status === 'success' ? 1 : 0;
+    sql += ` AND success = ?`;
+    countSql += ` AND success = ?`;
+    params.push(successValue);
+    countParams.push(successValue);
+  }
+  
+  const countResult = await query(countSql, countParams);
+  const total = Number((countResult[0] as { total: string }).total) || 0;
 
   const offset = (Number(page) - 1) * Number(pageSize);
   sql += ` ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
