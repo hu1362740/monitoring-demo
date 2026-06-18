@@ -22,9 +22,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppContent() {
-  const { loading, isAuthenticated } = useAuth();
-  
-  console.log('[AppContent] auth loading:', loading, 'isAuthenticated:', isAuthenticated);
+  const { loading } = useAuth();
   
   if (loading) {
     return (

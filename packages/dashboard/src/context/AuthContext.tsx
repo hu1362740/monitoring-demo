@@ -25,31 +25,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    console.log('[AuthContext] Checking token:', token ? 'exists' : 'not found');
-    
     if (!token) {
-      console.log('[AuthContext] No token, setting loading=false');
       setLoading(false);
       return;
     }
 
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    console.log('[AuthContext] Calling /api/v1/auth/profile...');
-    
     axios.get('/api/v1/auth/profile')
       .then(response => {
-        console.log('[AuthContext] Profile success:', response.data);
         setUser(response.data);
         setIsAuthenticated(true);
       })
-      .catch((error) => {
-        console.log('[AuthContext] Profile failed:', error.response?.status || error.message);
+      .catch(() => {
         localStorage.removeItem('token');
         delete axios.defaults.headers.common['Authorization'];
         setIsAuthenticated(false);
       })
       .finally(() => {
-        console.log('[AuthContext] Setting loading=false');
         setLoading(false);
       });
   }, []);

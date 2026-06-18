@@ -25,22 +25,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('[ProjectContext] isAuthenticated:', isAuthenticated);
-    
     if (!isAuthenticated) {
-      console.log('[ProjectContext] Not authenticated, setting loading=false');
       setLoading(false);
       return;
     }
 
     const fetchProjects = async () => {
       setLoading(true);
-      console.log('[ProjectContext] Fetching projects...');
       try {
         const response = await axios.get('/api/v1/projects');
-        console.log('[ProjectContext] Projects response:', response.data);
         
-        // 支持两种返回格式：{projects: [...]} 或直接数组 [...]
         const rawData = response.data.projects || response.data;
         const data = Array.isArray(rawData) ? rawData : [];
         
@@ -59,12 +53,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         } else if (formattedData.length > 0) {
           setCurrentProjectState(formattedData[0]);
         }
-        console.log('[ProjectContext] Projects loaded:', formattedData.length);
       } catch (error) {
-        console.error('[ProjectContext] Failed to fetch projects:', error);
+        console.error('Failed to fetch projects:', error);
         setProjects([]);
       } finally {
-        console.log('[ProjectContext] Setting loading=false');
         setLoading(false);
       }
     };

@@ -81,20 +81,15 @@ export default function ErrorMonitoring() {
         endDate,
       };
 
-      // 添加搜索关键词参数
       if (searchTerm.trim()) {
         params.message = searchTerm.trim();
       }
 
-      // 添加错误类型过滤参数
       if (filterType && filterType !== 'all') {
         params.errorType = filterType;
       }
 
-      console.log('[ErrorMonitoring] Fetching errors with params:', params);
-      
       const response = await axios.get('/api/v1/errors/stats', { params });
-      console.log('[ErrorMonitoring] Response:', response.data);
       
       if (response.data && response.data.length > 0) {
         setErrors(response.data.map((item: { error_type: string; message: string; url: string; count: number; last_occurrence: string }, index: number) => ({
@@ -106,11 +101,10 @@ export default function ErrorMonitoring() {
           last_occurrence: item.last_occurrence || new Date().toISOString(),
         })));
       } else {
-        console.log('[ErrorMonitoring] No data returned, showing empty state');
         setErrors([]);
       }
     } catch (error) {
-      console.error('[ErrorMonitoring] Failed to fetch errors:', error);
+      console.error('Failed to fetch errors:', error);
       setErrors([]);
     } finally {
       setLoading(false);
