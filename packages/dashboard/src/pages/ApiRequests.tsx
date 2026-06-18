@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Tag, Input, Select, Button, Row, Col, Statistic, Space, Spin, Empty } from 'antd';
+import { Table, Card, Tag, Input, Select, Button, Row, Col, Statistic, Space, Spin, Empty, DatePicker } from 'antd';
 import { ApiOutlined, ClockCircleOutlined, CheckCircleOutlined, DownloadOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import Layout from '../components/Layout';
@@ -23,15 +23,15 @@ export default function ApiRequests() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMethod, setFilterMethod] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([dayjs().subtract(7, 'day'), dayjs()]);
 
   useEffect(() => {
     if (!currentProject) return;
 
     const fetchData = async () => {
       try {
-        // 从专门的 api_requests 表查询数据
-        const startDate = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
-        const endDate = dayjs().format('YYYY-MM-DD');
+        const startDate = dateRange[0].format('YYYY-MM-DD');
+        const endDate = dateRange[1].format('YYYY-MM-DD');
         const response = await axios.get('/api/v1/api-requests', { 
           params: { 
             projectId: currentProject.id, 
@@ -56,7 +56,7 @@ export default function ApiRequests() {
       }
     };
     fetchData();
-  }, [currentProject]);
+  }, [currentProject, dateRange]);
 
   if (projectLoading || !currentProject) {
     return (
@@ -115,7 +115,20 @@ export default function ApiRequests() {
           <h1>API请求监控</h1>
           <p>追踪和分析API请求性能</p>
         </div>
-        <Button type="primary" icon={<DownloadOutlined />} onClick={handleExport}>导出数据</Button>
+        <DatePicker.RangePicker
+          value={dateRange}
+          onChange={(dates) => {
+            if (dates && dates.length === 2) {
+              setDateRange([dates[0], dates[1]]);
+            }
+          }}
+          style={{ width: 280 }}
+          placeholder={['开始日期', '结束日期']}
+          presets={[
+            { label: '近7天', value: [dayjs().subtract(7, 'day'), dayjs()] },
+            { label: '近30天', value: [dayjs().subtract(30, 'day'), dayjs()] },
+          ]}
+        />
       </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
@@ -145,6 +158,7 @@ export default function ApiRequests() {
             <Select.Option value="success">成功</Select.Option>
             <Select.Option value="error">失败</Select.Option>
           </Select>
+          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExport}>导出数据</Button>
         </Space>
       </Card>
 
