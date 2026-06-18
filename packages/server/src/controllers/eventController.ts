@@ -158,33 +158,45 @@ export async function receiveEvents(req: Request, res: Response): Promise<void> 
   // 更新项目事件计数缓存，用于前端实时展示上报状态，60 秒过期
   await setCache(`project:${projectId}:events:count`, Date.now(), 60);
 
-  res.status(200).json({ received: events.length });
+  res.status(200).json({
+    code: 0,
+    message: 'success',
+    data: { received: events.length }
+  });
 }
 
 /**
  * @description 分页查询项目事件列表，支持按事件类型过滤，结果会缓存 5 分钟
- * @param {Request} req - Express 请求对象，query 中包含 projectId、type、limit、offset
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、type、page、pageSize
  * @param {Response} res - Express 响应对象
  * @returns {Promise<void>} 返回事件列表和总数
  * @example
- * // GET /api/v1/events?projectId=1&type=error&limit=20&offset=0
+ * // GET /api/v1/events?projectId=1&type=error&page=1&pageSize=20
  */
 export async function getEvents(req: Request, res: Response): Promise<void> {
-  const { projectId, type, limit = 100, offset = 0 } = req.query;
+  const { projectId, type, page = 1, pageSize = 10 } = req.query;
 
   // projectId 为必填参数
   if (!projectId) {
-    res.status(400).json({ error: 'Project ID is required' });
+    res.status(400).json({
+      code: 400,
+      message: 'Project ID is required',
+      data: null
+    });
     return;
   }
 
   // 构建缓存键，包含所有查询维度，确保不同查询条件不会命中同一缓存
-  const cacheKey = `events:${projectId}:${type}:${limit}:${offset}`;
+  const cacheKey = `events:${projectId}:${type}:${page}:${pageSize}`;
   const cached = await getCache<{ events: unknown[]; total: number }>(cacheKey);
 
   // 缓存命中时直接返回，减少数据库压力
   if (cached) {
-    res.json(cached);
+    res.json({
+      code: 0,
+      message: 'success',
+      data: cached
+    });
     return;
   }
 
@@ -197,9 +209,12 @@ export async function getEvents(req: Request, res: Response): Promise<void> {
     params.push(type);
   }
 
+  // 计算 offset
+  const offset = (Number(page) - 1) * Number(pageSize);
+  
   // 按时间倒序排列，最新的排在前面，并应用分页参数
   sql += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
-  params.push(parseInt(limit as string, 10), parseInt(offset as string, 10));
+  params.push(Number(pageSize), offset);
 
   const events = await query(sql, params);
 
@@ -209,11 +224,15 @@ export async function getEvents(req: Request, res: Response): Promise<void> {
   const countResult = await query(countSql, countParams);
   const total = (countResult[0] as { total: number }).total;
 
-  const result = { events, total };
+  const result = { result: events, total };
   // 缓存查询结果 300 秒（5 分钟），平衡数据新鲜度与性能
   await setCache(cacheKey, result, 300);
 
-  res.json(result);
+  res.json({
+    code: 0,
+    message: 'success',
+    data: result
+  });
 }
 
 /**
@@ -228,7 +247,11 @@ export async function getErrorStats(req: Request, res: Response): Promise<void> 
   const { projectId, startDate, endDate, errorType, message } = req.query;
 
   if (!projectId) {
-    res.status(400).json({ error: 'Project ID is required' });
+    res.status(400).json({
+      code: 400,
+      message: 'Project ID is required',
+      data: null
+    });
     return;
   }
 
@@ -236,7 +259,11 @@ export async function getErrorStats(req: Request, res: Response): Promise<void> 
   const cached = await getCache(cacheKey);
 
   if (cached) {
-    res.json(cached);
+    res.json({
+      code: 0,
+      message: 'success',
+      data: cached
+    });
     return;
   }
 
@@ -270,7 +297,11 @@ export async function getErrorStats(req: Request, res: Response): Promise<void> 
   const stats = await query(sql, params);
   await setCache(cacheKey, stats, 300);
 
-  res.json(stats);
+  res.json({
+    code: 0,
+    message: 'success',
+    data: stats
+  });
 }
 
 /**
@@ -283,7 +314,11 @@ export async function getApiRequestStats(req: Request, res: Response): Promise<v
   const { projectId, startDate, endDate } = req.query;
 
   if (!projectId) {
-    res.status(400).json({ error: 'Project ID is required' });
+    res.status(400).json({
+      code: 400,
+      message: 'Project ID is required',
+      data: null
+    });
     return;
   }
 
@@ -308,26 +343,36 @@ export async function getApiRequestStats(req: Request, res: Response): Promise<v
   
   const totalCount = Number(result.total_count) || 0;
   
-  res.json({
+  const data = {
     totalCount,
     avgDuration: Math.round(Number(result.avg_duration) || 0),
     successRate: totalCount > 0 
       ? ((Number(result.success_count) / totalCount) * 100).toFixed(1) 
       : '0',
+  };
+
+  res.json({
+    code: 0,
+    message: 'success',
+    data
   });
 }
 
 /**
  * @description 获取指定项目的 API 请求列表（支持分页）
- * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate、limit、offset
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate、page、pageSize
  * @param {Response} res - Express 响应对象
  * @returns {Promise<void>} 返回 API 请求列表及总数
  */
 export async function getApiRequests(req: Request, res: Response): Promise<void> {
-  const { projectId, startDate, endDate, limit = 10, offset = 0 } = req.query;
+  const { projectId, startDate, endDate, page = 1, pageSize = 10 } = req.query;
 
   if (!projectId) {
-    res.status(400).json({ error: 'Project ID is required' });
+    res.status(400).json({
+      code: 400,
+      message: 'Project ID is required',
+      data: null
+    });
     return;
   }
 
@@ -354,9 +399,15 @@ export async function getApiRequests(req: Request, res: Response): Promise<void>
     params.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
   }
 
+  const offset = (Number(page) - 1) * Number(pageSize);
   sql += ` ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
-  params.push(Number(limit) || 10, Number(offset) || 0);
+  params.push(Number(pageSize) || 10, offset);
 
   const requests = await query(sql, params);
-  res.json({ requests, total });
+  
+  res.json({
+    code: 0,
+    message: 'success',
+    data: { result: requests, total }
+  });
 }

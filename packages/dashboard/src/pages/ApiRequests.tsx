@@ -33,7 +33,6 @@ export default function ApiRequests() {
     const fetchData = async () => {
       const startDate = dateRange[0].format('YYYY-MM-DD');
       const endDate = dateRange[1].format('YYYY-MM-DD');
-      const offset = (pagination.current - 1) * pagination.pageSize;
       
       try {
         // 并行请求统计数据和列表数据
@@ -42,19 +41,19 @@ export default function ApiRequests() {
             params: { projectId: currentProject.id, startDate, endDate } 
           }),
           axios.get('/api/v1/api-requests', { 
-            params: { projectId: currentProject.id, startDate, endDate, limit: pagination.pageSize, offset } 
+            params: { projectId: currentProject.id, startDate, endDate, page: pagination.current, pageSize: pagination.pageSize } 
           })
         ]);
         
-        // 更新统计数据
+        // 更新统计数据（适配标准响应格式）
         setStats({
-          totalCount: statsRes.data.totalCount || 0,
-          avgDuration: statsRes.data.avgDuration || 0,
-          successRate: statsRes.data.successRate || '0',
+          totalCount: statsRes.data.data?.totalCount || 0,
+          avgDuration: statsRes.data.data?.avgDuration || 0,
+          successRate: statsRes.data.data?.successRate || '0',
         });
         
-        // 更新列表数据
-        const apiRequests = listRes.data.requests || listRes.data || [];
+        // 更新列表数据（适配标准响应格式）
+        const apiRequests = listRes.data.data?.result || listRes.data.data?.requests || listRes.data.data || [];
         setRequests(apiRequests.map((item: Record<string, unknown>, index: number) => ({
           id: String(item.id) || `api-${index}`,
           url: String(item.url || item.data?.url || ''),
@@ -66,7 +65,7 @@ export default function ApiRequests() {
         })));
         
         // 更新分页总数
-        setPagination(prev => ({ ...prev, total: listRes.data.total || 0 }));
+        setPagination(prev => ({ ...prev, total: listRes.data.data?.total || 0 }));
       } catch (error) {
         console.error('Failed to fetch API requests:', error);
         setRequests([]);
@@ -80,6 +79,10 @@ export default function ApiRequests() {
   const handleTableChange = (paginationInfo: { current: number; pageSize: number }) => {
     setPagination(paginationInfo);
   };
+
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, current: 1 }));
+  }, [searchTerm, filterMethod, filterStatus, dateRange]);
 
   if (projectLoading || !currentProject) {
     return (
