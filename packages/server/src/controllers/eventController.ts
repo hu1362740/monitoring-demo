@@ -272,3 +272,37 @@ export async function getErrorStats(req: Request, res: Response): Promise<void> 
 
   res.json(stats);
 }
+
+/**
+ * @description 获取指定项目的 API 请求列表
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate、limit
+ * @param {Response} res - Express 响应对象
+ * @returns {Promise<void>} 返回 API 请求列表
+ */
+export async function getApiRequests(req: Request, res: Response): Promise<void> {
+  const { projectId, startDate, endDate, limit = 100 } = req.query;
+
+  if (!projectId) {
+    res.status(400).json({ error: 'Project ID is required' });
+    return;
+  }
+
+  let sql = `
+    SELECT id, project_id, url, method, status_code, duration, success, timestamp, created_at
+    FROM api_requests
+    WHERE project_id = ?
+  `;
+  const params: unknown[] = [projectId];
+
+  if (startDate && endDate) {
+    sql += ` AND timestamp >= ? AND timestamp <= ?`;
+    const endDateTime = `${endDate} 23:59:59`;
+    params.push(`${startDate} 00:00:00`, endDateTime);
+  }
+
+  sql += ` ORDER BY timestamp DESC LIMIT ?`;
+  params.push(Number(limit) || 100);
+
+  const requests = await query(sql, params);
+  res.json({ requests });
+}
