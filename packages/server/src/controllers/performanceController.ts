@@ -303,13 +303,65 @@ export async function getPerformanceSummary(req: Request, res: Response): Promis
           actualValue = dataObj.value;
         }
         
-        // 如果是 unknown 类型且包含 timeToInteractive，同时更新 tti 指标
-        if (standardType === 'unknown' && typeof dataObj.timeToInteractive === 'number' && dataObj.timeToInteractive > 0) {
-          if (!summaryMap['tti']) {
-            summaryMap['tti'] = { sum: 0, count: 0 };
+        // 如果是 unknown 类型，提取 Navigation Timing 详细指标
+        if (standardType === 'unknown') {
+          // 更新 TTI 指标
+          if (typeof dataObj.timeToInteractive === 'number' && dataObj.timeToInteractive > 0) {
+            if (!summaryMap['tti']) {
+              summaryMap['tti'] = { sum: 0, count: 0 };
+            }
+            summaryMap['tti'].sum += dataObj.timeToInteractive;
+            summaryMap['tti'].count++;
           }
-          summaryMap['tti'].sum += dataObj.timeToInteractive;
-          summaryMap['tti'].count++;
+          
+          // 从 data.metrics 中提取 Navigation Timing 指标
+          if (dataObj.metrics) {
+            // TTFB: 首字节时间 (request - dnsLookup - tcpConnection)
+            const ttfb = dataObj.metrics.request - (dataObj.metrics.dnsLookup || 0) - (dataObj.metrics.tcpConnection || 0);
+            if (ttfb > 0) {
+              if (!summaryMap['ttfb']) {
+                summaryMap['ttfb'] = { sum: 0, count: 0 };
+              }
+              summaryMap['ttfb'].sum += ttfb;
+              summaryMap['ttfb'].count++;
+            }
+            
+            // DNS 解析时间
+            if (dataObj.metrics.dnsLookup > 0) {
+              if (!summaryMap['dns']) {
+                summaryMap['dns'] = { sum: 0, count: 0 };
+              }
+              summaryMap['dns'].sum += dataObj.metrics.dnsLookup;
+              summaryMap['dns'].count++;
+            }
+            
+            // TCP 连接时间
+            if (dataObj.metrics.tcpConnection > 0) {
+              if (!summaryMap['tcp']) {
+                summaryMap['tcp'] = { sum: 0, count: 0 };
+              }
+              summaryMap['tcp'].sum += dataObj.metrics.tcpConnection;
+              summaryMap['tcp'].count++;
+            }
+            
+            // 响应时间
+            if (dataObj.metrics.response > 0) {
+              if (!summaryMap['response']) {
+                summaryMap['response'] = { sum: 0, count: 0 };
+              }
+              summaryMap['response'].sum += dataObj.metrics.response;
+              summaryMap['response'].count++;
+            }
+            
+            // DOM 解析时间
+            if (dataObj.metrics.domContentLoaded > 0) {
+              if (!summaryMap['dom']) {
+                summaryMap['dom'] = { sum: 0, count: 0 };
+              }
+              summaryMap['dom'].sum += dataObj.metrics.domContentLoaded;
+              summaryMap['dom'].count++;
+            }
+          }
         }
       }
     }

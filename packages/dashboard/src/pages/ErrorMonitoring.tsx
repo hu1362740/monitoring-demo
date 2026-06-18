@@ -115,7 +115,7 @@ export default function ErrorMonitoring() {
     if (currentProject) {
       fetchErrors();
     }
-  }, [currentProject]);
+  }, [currentProject, dateRange]);
 
   const handleDateRangeChange = (dates: [dayjs.Dayjs, dayjs.Dayjs] | null) => {
     setDateRange(dates);
