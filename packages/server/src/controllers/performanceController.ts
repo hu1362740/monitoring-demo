@@ -97,6 +97,50 @@ export async function getMetrics(req: Request, res: Response): Promise<void> {
  * @example
  * // GET /api/v1/metrics/summary?projectId=1&startDate=2024-01-01&endDate=2024-01-31
  */
+/**
+ * @description 获取性能指标时间趋势数据，按小时分组统计
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate
+ * @param {Response} res - Express 响应对象
+ * @returns {Promise<void>} 返回按小时分组的性能指标趋势数据
+ * @example
+ * // GET /api/v1/metrics/trend?projectId=1&startDate=2024-01-01&endDate=2024-01-31
+ */
+export async function getPerformanceTrend(req: Request, res: Response): Promise<void> {
+  const { projectId, startDate, endDate } = req.query;
+
+  if (!projectId) {
+    res.status(400).json({ error: 'Project ID is required' });
+    return;
+  }
+
+  const cacheKey = `metrics:trend:${projectId}:${startDate}:${endDate}`;
+  const cached = await getCache(cacheKey);
+
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
+  // 按小时分组，统计各指标的平均值
+  const sql = `
+    SELECT 
+      DATE_FORMAT(timestamp, '%Y-%m-%d %H:00:00') as hour,
+      metric_type,
+      AVG(value) as avg_value
+    FROM performance_metrics
+    WHERE project_id = ?
+      AND timestamp >= ?
+      AND timestamp <= ?
+    GROUP BY hour, metric_type
+    ORDER BY hour ASC
+  `;
+
+  const trend = await query(sql, [projectId, `${startDate} 00:00:00`, `${endDate} 23:59:59`]);
+  await setCache(cacheKey, trend, 300);
+
+  res.json(trend);
+}
+
 export async function getPerformanceSummary(req: Request, res: Response): Promise<void> {
   const { projectId, startDate, endDate } = req.query;
 

@@ -12,6 +12,7 @@ import * as echarts from 'echarts/core';
 import { LineChart, BarChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
+import dayjs from 'dayjs';
 import Layout from '../components/Layout';
 import axios from 'axios';
 import { useProject } from '../context/ProjectContext';
@@ -26,48 +27,73 @@ export default function Performance() {
   const [metrics, setMetrics] = useState<MetricData[]>([]);
   const [timeTrend, setTimeTrend] = useState<TimeData[]>([]);
   const [avgMetrics, setAvgMetrics] = useState({ fcp: 0, lcp: 0, tti: 0, cls: 0 });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!currentProject) return;
 
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const response = await axios.get('/api/v1/metrics/summary', { params: { projectId: currentProject.id, startDate: sevenDaysAgo, endDate: today } });
+        const today = dayjs().format('YYYY-MM-DD');
+        const sevenDaysAgo = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
+
+        const [summaryRes, trendRes] = await Promise.all([
+          axios.get('/api/v1/metrics/summary', { params: { projectId: currentProject.id, startDate: sevenDaysAgo, endDate: today } }),
+          axios.get('/api/v1/metrics/trend', { params: { projectId: currentProject.id, startDate: sevenDaysAgo, endDate: today } }),
+        ]);
 
         const summaryData: Record<string, number> = {};
-        response.data.forEach((item: { metric_type: string; avg_value: number }) => {
+        summaryRes.data.forEach((item: { metric_type: string; avg_value: number }) => {
           summaryData[item.metric_type] = item.avg_value;
         });
 
         setAvgMetrics({
-          fcp: summaryData.fcp || 1850,
-          lcp: summaryData.lcp || 2450,
-          tti: summaryData.tti || 3200,
-          cls: summaryData.cls || 0.15,
+          fcp: summaryData.fcp || 0,
+          lcp: summaryData.lcp || 0,
+          tti: summaryData.tti || 0,
+          cls: summaryData.cls || 0,
         });
 
         setMetrics([
-          { name: '首字节时间', value: summaryData.ttfb || 850 },
-          { name: 'DNS解析', value: summaryData.dns || 120 },
-          { name: 'TCP连接', value: summaryData.tcp || 280 },
-          { name: '请求响应', value: summaryData.response || 450 },
-          { name: 'DOM渲染', value: summaryData.dom || 1200 },
-          { name: '资源加载', value: summaryData.resources || 800 },
+          { name: '首字节时间', value: summaryData.ttfb || 0 },
+          { name: 'DNS解析', value: summaryData.dns || 0 },
+          { name: 'TCP连接', value: summaryData.tcp || 0 },
+          { name: '请求响应', value: summaryData.response || 0 },
+          { name: 'DOM渲染', value: summaryData.dom || 0 },
+          { name: '资源加载', value: summaryData.resources || 0 },
         ]);
 
-        setTimeTrend([
-          { time: '00:00', fcp: 1600, lcp: 2200, tti: 2800 },
-          { time: '04:00', fcp: 1500, lcp: 2100, tti: 2600 },
-          { time: '08:00', fcp: 2100, lcp: 2800, tti: 3500 },
-          { time: '12:00', fcp: 2400, lcp: 3200, tti: 4000 },
-          { time: '16:00', fcp: 1900, lcp: 2500, tti: 3200 },
-          { time: '20:00', fcp: 1700, lcp: 2300, tti: 2900 },
-          { time: '23:59', fcp: 1500, lcp: 2000, tti: 2600 },
-        ]);
+        // 处理时间趋势数据
+        const trendData = trendRes.data;
+        const hourlyData: Record<string, { fcp: number; lcp: number; tti: number }> = {};
+
+        trendData.forEach((item: { hour: string; metric_type: string; avg_value: number }) => {
+          const time = item.hour.split(' ')[1].slice(0, 5);
+          if (!hourlyData[time]) {
+            hourlyData[time] = { fcp: 0, lcp: 0, tti: 0 };
+          }
+          if (item.metric_type === 'fcp') hourlyData[time].fcp = item.avg_value;
+          if (item.metric_type === 'lcp') hourlyData[time].lcp = item.avg_value;
+          if (item.metric_type === 'tti') hourlyData[time].tti = item.avg_value;
+        });
+
+        const trendArray = Object.entries(hourlyData).map(([time, values]) => ({
+          time,
+          fcp: Math.round(values.fcp),
+          lcp: Math.round(values.lcp),
+          tti: Math.round(values.tti),
+        }));
+
+        // 如果没有数据，显示空状态
+        if (trendArray.length > 0) {
+          setTimeTrend(trendArray);
+        } else {
+          setTimeTrend([]);
+        }
       } catch (error) {
         console.error('Failed to fetch performance data:', error);
+        // 保持现有假数据作为降级
         setAvgMetrics({ fcp: 1850, lcp: 2450, tti: 3200, cls: 0.15 });
         setMetrics([
           { name: '首字节时间', value: 850 },
@@ -86,6 +112,8 @@ export default function Performance() {
           { time: '20:00', fcp: 1700, lcp: 2300, tti: 2900 },
           { time: '23:59', fcp: 1500, lcp: 2000, tti: 2600 },
         ]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -167,13 +195,33 @@ export default function Performance() {
       </Row>
 
       <Card title="核心指标趋势" style={{ marginTop: 16 }}>
-        <ReactEChartsCore echarts={echarts} option={lineOption} style={{ height: 300 }} />
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+            <Spin size="large" />
+          </div>
+        ) : timeTrend.length > 0 ? (
+          <ReactEChartsCore echarts={echarts} option={lineOption} style={{ height: 300 }} />
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, color: '#999' }}>
+            暂无性能数据，请先上报数据
+          </div>
+        )}
       </Card>
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={12}>
           <Card title="时间分解">
-            <ReactEChartsCore echarts={echarts} option={barOption} style={{ height: 280 }} />
+            {loading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 280 }}>
+                <Spin size="large" />
+              </div>
+            ) : metrics.some(m => m.value > 0) ? (
+              <ReactEChartsCore echarts={echarts} option={barOption} style={{ height: 280 }} />
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 280, color: '#999' }}>
+                暂无时间分解数据
+              </div>
+            )}
           </Card>
         </Col>
         <Col xs={24} lg={12}>
