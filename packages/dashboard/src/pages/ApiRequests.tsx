@@ -24,23 +24,37 @@ export default function ApiRequests() {
   const [filterMethod, setFilterMethod] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([dayjs().subtract(7, 'day'), dayjs()]);
+  const [stats, setStats] = useState({ totalCount: 0, avgDuration: 0, successRate: '0' });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
   useEffect(() => {
     if (!currentProject) return;
 
     const fetchData = async () => {
+      const startDate = dateRange[0].format('YYYY-MM-DD');
+      const endDate = dateRange[1].format('YYYY-MM-DD');
+      const offset = (pagination.current - 1) * pagination.pageSize;
+      
       try {
-        const startDate = dateRange[0].format('YYYY-MM-DD');
-        const endDate = dateRange[1].format('YYYY-MM-DD');
-        const response = await axios.get('/api/v1/api-requests', { 
-          params: { 
-            projectId: currentProject.id, 
-            startDate,
-            endDate,
-            limit: 1000
-          } 
+        // 并行请求统计数据和列表数据
+        const [statsRes, listRes] = await Promise.all([
+          axios.get('/api/v1/api-requests/stats', { 
+            params: { projectId: currentProject.id, startDate, endDate } 
+          }),
+          axios.get('/api/v1/api-requests', { 
+            params: { projectId: currentProject.id, startDate, endDate, limit: pagination.pageSize, offset } 
+          })
+        ]);
+        
+        // 更新统计数据
+        setStats({
+          totalCount: statsRes.data.totalCount || 0,
+          avgDuration: statsRes.data.avgDuration || 0,
+          successRate: statsRes.data.successRate || '0',
         });
-        const apiRequests = response.data.requests || response.data || [];
+        
+        // 更新列表数据
+        const apiRequests = listRes.data.requests || listRes.data || [];
         setRequests(apiRequests.map((item: Record<string, unknown>, index: number) => ({
           id: String(item.id) || `api-${index}`,
           url: String(item.url || item.data?.url || ''),
@@ -50,13 +64,22 @@ export default function ApiRequests() {
           success: Boolean(item.success || item.data?.success),
           timestamp: String(item.timestamp || item.created_at || new Date().toISOString()),
         })));
+        
+        // 更新分页总数
+        setPagination(prev => ({ ...prev, total: listRes.data.total || 0 }));
       } catch (error) {
         console.error('Failed to fetch API requests:', error);
         setRequests([]);
+        setStats({ totalCount: 0, avgDuration: 0, successRate: '0' });
+        setPagination(prev => ({ ...prev, total: 0 }));
       }
     };
     fetchData();
-  }, [currentProject, dateRange]);
+  }, [currentProject, dateRange, pagination.current, pagination.pageSize]);
+
+  const handleTableChange = (paginationInfo: { current: number; pageSize: number }) => {
+    setPagination(paginationInfo);
+  };
 
   if (projectLoading || !currentProject) {
     return (
@@ -74,9 +97,6 @@ export default function ApiRequests() {
     const matchesStatus = filterStatus === 'all' || (filterStatus === 'success' && req.success) || (filterStatus === 'error' && !req.success);
     return matchesSearch && matchesMethod && matchesStatus;
   });
-
-  const avgDuration = requests.length > 0 ? Math.round(requests.reduce((sum, r) => sum + r.duration, 0) / requests.length) : 0;
-  const successRate = requests.length > 0 ? ((requests.filter((r) => r.success).length / requests.length) * 100).toFixed(1) : '0';
 
   const handleExport = () => {
     const csv = [['URL', '方法', '状态码', '响应时间(ms)', '成功', '时间']]
@@ -133,13 +153,13 @@ export default function ApiRequests() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
-          <Card><Statistic title="总请求数" value={requests.length} prefix={<ApiOutlined />} /></Card>
+          <Card><Statistic title="总请求数" value={stats.totalCount} prefix={<ApiOutlined />} /></Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card><Statistic title="平均响应时间" value={avgDuration} suffix="ms" prefix={<ClockCircleOutlined />} /></Card>
+          <Card><Statistic title="平均响应时间" value={stats.avgDuration} suffix="ms" prefix={<ClockCircleOutlined />} /></Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card><Statistic title="成功率" value={successRate} suffix="%" prefix={<CheckCircleOutlined />} valueStyle={{ color: '#52c41a' }} /></Card>
+          <Card><Statistic title="成功率" value={stats.successRate} suffix="%" prefix={<CheckCircleOutlined />} valueStyle={{ color: '#52c41a' }} /></Card>
         </Col>
       </Row>
 
@@ -166,7 +186,19 @@ export default function ApiRequests() {
         {requests.length === 0 ? (
           <Empty description="暂无API请求数据，请先上报数据" style={{ padding: '40px 0' }} />
         ) : (
-          <Table columns={columns} dataSource={filteredRequests} rowKey="id" pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }} />
+          <Table 
+            columns={columns} 
+            dataSource={filteredRequests} 
+            rowKey="id" 
+            pagination={{ 
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true, 
+              showTotal: (total) => `共 ${total} 条` 
+            }}
+            onChange={handleTableChange}
+          />
         )}
       </Card>
     </Layout>

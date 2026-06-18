@@ -274,13 +274,13 @@ export async function getErrorStats(req: Request, res: Response): Promise<void> 
 }
 
 /**
- * @description 获取指定项目的 API 请求列表
- * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate、limit
+ * @description 获取API请求统计数据
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate
  * @param {Response} res - Express 响应对象
- * @returns {Promise<void>} 返回 API 请求列表
+ * @returns {Promise<void>} 返回统计数据
  */
-export async function getApiRequests(req: Request, res: Response): Promise<void> {
-  const { projectId, startDate, endDate, limit = 100 } = req.query;
+export async function getApiRequestStats(req: Request, res: Response): Promise<void> {
+  const { projectId, startDate, endDate } = req.query;
 
   if (!projectId) {
     res.status(400).json({ error: 'Project ID is required' });
@@ -288,7 +288,10 @@ export async function getApiRequests(req: Request, res: Response): Promise<void>
   }
 
   let sql = `
-    SELECT id, project_id, url, method, status_code, duration, success, timestamp, created_at
+    SELECT 
+      COUNT(*) as total_count,
+      AVG(duration) as avg_duration,
+      SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count
     FROM api_requests
     WHERE project_id = ?
   `;
@@ -300,9 +303,60 @@ export async function getApiRequests(req: Request, res: Response): Promise<void>
     params.push(`${startDate} 00:00:00`, endDateTime);
   }
 
-  sql += ` ORDER BY timestamp DESC LIMIT ?`;
-  params.push(Number(limit) || 100);
+  const stats = await query(sql, params);
+  const result = stats[0] as { total_count: string; avg_duration: string; success_count: string };
+  
+  const totalCount = Number(result.total_count) || 0;
+  
+  res.json({
+    totalCount,
+    avgDuration: Math.round(Number(result.avg_duration) || 0),
+    successRate: totalCount > 0 
+      ? ((Number(result.success_count) / totalCount) * 100).toFixed(1) 
+      : '0',
+  });
+}
+
+/**
+ * @description 获取指定项目的 API 请求列表（支持分页）
+ * @param {Request} req - Express 请求对象，query 中包含 projectId、startDate、endDate、limit、offset
+ * @param {Response} res - Express 响应对象
+ * @returns {Promise<void>} 返回 API 请求列表及总数
+ */
+export async function getApiRequests(req: Request, res: Response): Promise<void> {
+  const { projectId, startDate, endDate, limit = 10, offset = 0 } = req.query;
+
+  if (!projectId) {
+    res.status(400).json({ error: 'Project ID is required' });
+    return;
+  }
+
+  let countSql = `SELECT COUNT(*) as total FROM api_requests WHERE project_id = ?`;
+  const countParams: unknown[] = [projectId];
+  
+  if (startDate && endDate) {
+    countSql += ` AND timestamp >= ? AND timestamp <= ?`;
+    countParams.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
+  }
+  
+  const countResult = await query(countSql, countParams);
+  const total = Number((countResult[0] as { total: string }).total) || 0;
+
+  let sql = `
+    SELECT id, project_id, url, method, status_code, duration, success, timestamp, created_at
+    FROM api_requests
+    WHERE project_id = ?
+  `;
+  const params: unknown[] = [projectId];
+
+  if (startDate && endDate) {
+    sql += ` AND timestamp >= ? AND timestamp <= ?`;
+    params.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
+  }
+
+  sql += ` ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
+  params.push(Number(limit) || 10, Number(offset) || 0);
 
   const requests = await query(sql, params);
-  res.json({ requests });
+  res.json({ requests, total });
 }
