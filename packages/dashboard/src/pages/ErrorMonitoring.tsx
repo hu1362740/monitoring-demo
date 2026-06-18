@@ -91,8 +91,9 @@ export default function ErrorMonitoring() {
 
       const response = await axios.get('/api/v1/errors/stats', { params });
       
-      if (response.data && response.data.length > 0) {
-        setErrors(response.data.map((item: { error_type: string; message: string; url: string; count: number; last_occurrence: string }, index: number) => ({
+      const errorData = response.data.data || [];
+      if (errorData.length > 0) {
+        setErrors(errorData.map((item: { error_type: string; message: string; url: string; count: number; last_occurrence: string }, index: number) => ({
           id: `error-${index}`,
           error_type: item.error_type,
           message: item.message || `An error occurred of type ${item.error_type}`,
