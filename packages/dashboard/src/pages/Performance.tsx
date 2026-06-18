@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Progress, Spin } from 'antd';
+import { Card, Row, Col, Statistic, Progress, Spin, DatePicker } from 'antd';
 import {
   ClockCircleOutlined,
   ArrowUpOutlined,
@@ -28,6 +28,7 @@ export default function Performance() {
   const [timeTrend, setTimeTrend] = useState<TimeData[]>([]);
   const [avgMetrics, setAvgMetrics] = useState({ fcp: 0, lcp: 0, tti: 0, cls: 0 });
   const [loading, setLoading] = useState(false);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([dayjs(), dayjs()]);
 
   useEffect(() => {
     if (!currentProject) return;
@@ -35,12 +36,12 @@ export default function Performance() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const today = dayjs().format('YYYY-MM-DD');
-        const sevenDaysAgo = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
+        const startDate = dateRange[0].format('YYYY-MM-DD');
+        const endDate = dateRange[1].format('YYYY-MM-DD');
 
         const [summaryRes, trendRes] = await Promise.all([
-          axios.get('/api/v1/metrics/summary', { params: { projectId: currentProject.id, startDate: sevenDaysAgo, endDate: today } }),
-          axios.get('/api/v1/metrics/trend', { params: { projectId: currentProject.id, startDate: sevenDaysAgo, endDate: today } }),
+          axios.get('/api/v1/metrics/summary', { params: { projectId: currentProject.id, startDate, endDate } }),
+          axios.get('/api/v1/metrics/trend', { params: { projectId: currentProject.id, startDate, endDate } }),
         ]);
 
         const summaryData: Record<string, number> = {};
@@ -117,7 +118,7 @@ export default function Performance() {
       }
     };
     fetchData();
-  }, [currentProject]);
+  }, [currentProject, dateRange]);
 
   if (projectLoading || !currentProject) {
     return (
@@ -166,9 +167,25 @@ export default function Performance() {
 
   return (
     <Layout>
-      <div className="page-header">
-        <h1>性能分析</h1>
-        <p>分析和优化前端性能指标</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1>性能分析</h1>
+          <p>分析和优化前端性能指标</p>
+        </div>
+        <DatePicker.RangePicker
+          value={dateRange}
+          onChange={(dates) => {
+            if (dates && dates.length === 2) {
+              setDateRange([dates[0], dates[1]]);
+            }
+          }}
+          style={{ width: 280 }}
+          placeholder={['开始日期', '结束日期']}
+          presets={[
+            { label: '近7天', value: [dayjs().subtract(7, 'day'), dayjs()] },
+            { label: '近30天', value: [dayjs().subtract(30, 'day'), dayjs()] },
+          ]}
+        />
       </div>
 
       <Row gutter={[16, 16]}>
