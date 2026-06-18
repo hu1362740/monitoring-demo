@@ -1,5 +1,5 @@
 /**
- * @description 性能采集模块，负责捕获页面加载性能指标（Navigation Timing、Paint Timing、LCP）
+ * @description 性能采集模块，负责捕获页面加载性能指标（Navigation Timing、Paint Timing、LCP、CLS）
  */
 
 import type { EventData, PerformanceData } from '../types';
@@ -12,14 +12,24 @@ interface LCPPerformanceEntry extends PerformanceEntry {
   size: number;
 }
 
+/** CLS 性能条目类型定义 */
+interface CLSPerformanceEntry extends PerformanceEntry {
+  /** 是否为首次输入后的偏移 */
+  hadRecentInput: boolean;
+  /** 影响范围分数 */
+  value: number;
+}
+
 /**
  * @description 性能采集器类，通过 Performance API 和 PerformanceObserver 采集性能数据
  */
 export class PerformanceCapturer {
   /** 事件发送回调函数 */
   private sendEvent: (event: EventData) => void;
-  /** PerformanceObserver 实例，用于监听 paint 和 LCP 事件 */
+  /** PerformanceObserver 实例，用于监听 paint、LCP 和 CLS 事件 */
   private observer?: PerformanceObserver;
+  /** CLS 累加器，用于计算页面总布局偏移分数 */
+  private clsTotal: number = 0;
 
   /**
    * @description 创建性能采集器实例并立即开始监听
@@ -40,7 +50,21 @@ export class PerformanceCapturer {
         this.captureNavigationTiming();
       });
 
-      // 使用 PerformanceObserver 监听 paint 和 LCP 事件
+      // 页面隐藏时发送 CLS 数据
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && this.clsTotal > 0) {
+          this.sendCLSEvent();
+        }
+      });
+
+      // 页面卸载时发送 CLS 数据
+      window.addEventListener('beforeunload', () => {
+        if (this.clsTotal > 0) {
+          this.sendCLSEvent();
+        }
+      });
+
+      // 使用 PerformanceObserver 监听 paint、LCP 和 CLS 事件
       if ('PerformanceObserver' in window) {
         this.observer = new PerformanceObserver((entryList) => {
           for (const entry of entryList.getEntries()) {
@@ -49,6 +73,8 @@ export class PerformanceCapturer {
               this.capturePaintTiming(entry as PerformancePaintTiming);
             } else if (entry.entryType === 'largest-contentful-paint') {
               this.captureLCP(entry as LCPPerformanceEntry);
+            } else if (entry.entryType === 'layout-shift') {
+              this.captureCLS(entry as CLSPerformanceEntry);
             }
           }
         });
@@ -64,8 +90,40 @@ export class PerformanceCapturer {
           type: 'largest-contentful-paint',
           buffered: true
         });
+
+        // 监听布局偏移（CLS）
+        this.observer.observe({
+          type: 'layout-shift',
+          buffered: true
+        });
       }
     }
+  }
+
+  /**
+   * @description 采集布局偏移（CLS）数据
+   * @param entry - CLS 性能条目
+   */
+  private captureCLS(entry: CLSPerformanceEntry): void {
+    // 忽略由用户输入引起的布局偏移（输入后 500ms 内的偏移）
+    if (!entry.hadRecentInput) {
+      this.clsTotal += entry.value;
+    }
+  }
+
+  /**
+   * @description 发送 CLS 事件
+   */
+  private sendCLSEvent(): void {
+    const event: EventData = {
+      type: 'performance',
+      timestamp: Date.now(),
+      data: {
+        metricType: 'cumulative-layout-shift',
+        value: this.clsTotal
+      }
+    };
+    this.sendEvent(event);
   }
 
   /**

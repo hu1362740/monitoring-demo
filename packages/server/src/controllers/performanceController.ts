@@ -272,6 +272,9 @@ export async function getPerformanceSummary(req: Request, res: Response): Promis
           actualValue = dataObj.duration;
         } else if (typeof dataObj.timeToInteractive === 'number' && dataObj.timeToInteractive > 0) {
           actualValue = dataObj.timeToInteractive;
+        } else if (typeof dataObj.value === 'number' && dataObj.value > 0) {
+          // CLS 指标使用 value 字段
+          actualValue = dataObj.value;
         }
         
         // 如果是 unknown 类型且包含 timeToInteractive，同时更新 tti 指标
