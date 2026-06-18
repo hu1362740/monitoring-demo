@@ -154,19 +154,45 @@ export async function getPerformanceTrend(req: Request, res: Response): Promise<
     const standardType = typeMap[item.metric_type] || item.metric_type;
     
     // 优先从 data 字段获取实际值
-    let actualValue = item.value;
+    // item.value 是数据库的 DECIMAL 类型，需要转换为数字
+    let actualValue = typeof item.value === 'number' ? item.value : parseFloat(String(item.value)) || 0;
+    
+    // data 可能已经是解析后的对象（mysql2 自动解析 JSON 字段）
     if (item.data) {
-      try {
-        const dataObj = JSON.parse(item.data);
+      let dataObj: any;
+      if (typeof item.data === 'string') {
+        try {
+          dataObj = JSON.parse(item.data);
+        } catch {
+          dataObj = null;
+        }
+      } else {
+        dataObj = item.data;
+      }
+      
+      if (dataObj) {
         if (typeof dataObj.startTime === 'number' && dataObj.startTime > 0) {
           actualValue = dataObj.startTime;
         } else if (typeof dataObj.duration === 'number' && dataObj.duration > 0) {
           actualValue = dataObj.duration;
         } else if (typeof dataObj.timeToInteractive === 'number' && dataObj.timeToInteractive > 0) {
           actualValue = dataObj.timeToInteractive;
+        } else if (typeof dataObj.value === 'number' && dataObj.value > 0) {
+          // CLS 指标使用 value 字段
+          actualValue = dataObj.value;
         }
-      } catch {
-        // ignore JSON parse error
+        
+        // 如果是 unknown 类型且包含 timeToInteractive，同时更新 tti 指标
+        if (standardType === 'unknown' && typeof dataObj.timeToInteractive === 'number' && dataObj.timeToInteractive > 0) {
+          if (!hourlyMap[item.hour]) {
+            hourlyMap[item.hour] = {};
+          }
+          if (!hourlyMap[item.hour]['tti']) {
+            hourlyMap[item.hour]['tti'] = { sum: 0, count: 0 };
+          }
+          hourlyMap[item.hour]['tti'].sum += dataObj.timeToInteractive;
+          hourlyMap[item.hour]['tti'].count++;
+        }
       }
     }
 
