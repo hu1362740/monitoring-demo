@@ -66,7 +66,8 @@ export class MonitoringSDK {
       // 是否开启用户行为自动追踪（点击、页面浏览、表单提交）
       captureUserBehavior: config.captureUserBehavior !== undefined ? config.captureUserBehavior : false,
       // 需要忽略的 URL 列表，匹配这些 URL 的 API 请求不会被上报
-      ignoreUrls: config.ignoreUrls || [],
+      // 默认自动忽略 SDK 自身的上报 endpoint，避免"监控监控本身"的循环
+      ignoreUrls: [...(config.ignoreUrls || []), config.endpoint || 'https://api.monitoring.example.com/v1/events'],
       // 数据发送前的钩子函数，可修改事件数据或返回 null 取消发送
       beforeSend: config.beforeSend || ((data: EventData) => data)
     };
